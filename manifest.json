@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "jobo.big-cheese",
+  "name": "Big Cheese",
+  "version": "0.1.0",
+  "author": "J. S. Brown",
+  "description": "Shake the pointer to make it impossible to lose.",
+  "kinds": [
+    "service"
+  ],
+  "entryPoints": {
+    "service": "Service.qml"
+  }
+}

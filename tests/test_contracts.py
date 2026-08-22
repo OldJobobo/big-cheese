@@ -37,6 +37,7 @@ def test_complete_runtime_files_exist():
         "Service.qml",
         "BarWidget.qml",
         "Panel.qml",
+        "cheese.toml",
         "services/CursorTracker.qml",
         "services/ShakeDetector.qml",
         "services/ShakeModel.js",
@@ -46,8 +47,20 @@ def test_complete_runtime_files_exist():
         "services/CursorLocatorModel.js",
         "scripts/cursor-pulse.sh",
         "scripts/cursor-palette.py",
+        "scripts/cheese-config.py",
     ):
         assert (ROOT / relative).is_file()
+
+
+def test_service_loads_the_short_toml_config_into_runtime_components():
+    assert 'Qt.resolvedUrl("cheese.toml")' in SERVICE
+    assert 'Qt.resolvedUrl("scripts/cheese-config.py")' in SERVICE
+    assert "configProcess.command = [configReaderPath, configPath]" in SERVICE
+    assert "minimumStep: root.detectorConfig.minimumStep" in SERVICE
+    assert "minimumReversals: root.detectorConfig.minimumReversals" in SERVICE
+    assert "minimumPeakSize: root.configuredPointerSize" in SERVICE
+    assert "maximumPeakSize: root.configuredPointerSize" in SERVICE
+    assert "durationMs: root.configuredDurationMs" in SERVICE
 
 
 def test_service_has_exactly_one_owner_for_each_runtime_component():
@@ -180,12 +193,13 @@ def test_startup_recovery_failure_is_reported_in_overlay_mode():
 
 def test_bar_widget_uses_the_shared_service_without_duplicate_ipc():
     assert 'serviceFor(root.moduleName)' in BAR_WIDGET
-    assert 'text: "\\uf7ef"' in BAR_WIDGET
+    assert 'text: root.fullColorCheese ? "" : "\\uf7ef"' in BAR_WIDGET
     assert 'fontFamily: "Font Awesome 7 Free Solid"' in BAR_WIDGET
     assert "fontSize: Math.max(1, Style.bar.iconFont - 1)" in BAR_WIDGET
-    assert "iconComponent:" not in BAR_WIDGET
-    assert "\\uf245" not in BAR_WIDGET
-    assert "🧀" not in BAR_WIDGET
+    assert "property bool fullColorCheese: false" in BAR_WIDGET
+    assert "iconComponent: root.fullColorCheese ? colorCheese : null" in BAR_WIDGET
+    assert 'source: Qt.resolvedUrl("assets/cheese-emoji.svg")' in BAR_WIDGET
+    assert (ROOT / "assets" / "cheese-emoji.svg").is_file()
     assert "togglePanel()" in BAR_WIDGET
     assert "toggleEnabled()" in BAR_WIDGET
     assert "IpcHandler" not in BAR_WIDGET
@@ -193,9 +207,11 @@ def test_bar_widget_uses_the_shared_service_without_duplicate_ipc():
 
 def test_left_click_opens_a_minimal_native_panel():
     assert 'source: Qt.resolvedUrl("Panel.qml")' in BAR_WIDGET
-    assert "else if (mouseButton === Qt.LeftButton) togglePanel()" in BAR_WIDGET
-    assert "onDoubleClicked" not in BAR_WIDGET
-    assert "singleClickTimer" not in BAR_WIDGET
+    assert "else if (mouseButton === Qt.LeftButton) singleClickTimer.restart()" in BAR_WIDGET
+    assert "onTriggered: root.togglePanel()" in BAR_WIDGET
+    assert "interval: Qt.styleHints.mouseDoubleClickInterval" in BAR_WIDGET
+    assert "onDoubleClicked:" in BAR_WIDGET
+    assert "fullColorCheese = !fullColorCheese" in BAR_WIDGET
     assert "KeyboardPanel" in PANEL
     assert "PanelHero" in PANEL
     assert "ToggleSwitch" in PANEL
@@ -251,3 +267,4 @@ def test_helper_holds_final_restore_lock_until_outcome_publication():
 def test_helpers_are_executable():
     assert (ROOT / "scripts" / "cursor-pulse.sh").stat().st_mode & 0o111
     assert (ROOT / "scripts" / "cursor-palette.py").stat().st_mode & 0o111
+    assert (ROOT / "scripts" / "cheese-config.py").stat().st_mode & 0o111

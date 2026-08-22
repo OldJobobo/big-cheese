@@ -1,26 +1,50 @@
 import QtQuick
+import "ShakeModel.js" as ShakeModel
 
 QtObject {
   id: root
 
   property bool enabled: true
-  property int windowMs: 750
-  property int cooldownMs: 1200
+  property int windowMs: 800
+  property int maxSampleGapMs: 220
+  property real minimumStep: 14
   property int minimumReversals: 3
-  property real minimumTravel: 420
-  property real minimumStep: 18
+  property real minimumHorizontalTravel: 360
+  property real horizontalDominance: 1.15
+  property real maximumSegmentContribution: 180
+  property real armingSpeed: 450
+  property int cooldownMs: 1400
 
-  property var samples: []
-  property double lastTriggerAt: 0
-  property int reversalCount: 0
-  property real travel: 0
+  property var modelState: ShakeModel.initialState(0)
+  readonly property bool armed: Boolean(modelState.armed)
+  readonly property int reversalCount: Number(modelState.reversals) || 0
+  readonly property real travel: Number(modelState.horizontalTravel) || 0
+  readonly property real verticalTravel: Number(modelState.verticalTravel) || 0
+  readonly property real peakSpeed: Number(modelState.peakSpeed) || 0
+  readonly property double lastTriggerAt: Number(modelState.lastTriggerAt) || 0
 
   signal shaken(real score)
 
+  function config() {
+    return {
+      windowMs: windowMs,
+      maxSampleGapMs: maxSampleGapMs,
+      minimumStep: minimumStep,
+      minimumReversals: minimumReversals,
+      minimumHorizontalTravel: minimumHorizontalTravel,
+      horizontalDominance: horizontalDominance,
+      maximumSegmentContribution: maximumSegmentContribution,
+      armingSpeed: armingSpeed,
+      cooldownMs: cooldownMs
+    }
+  }
+
+  function clearGesture() {
+    modelState = ShakeModel.initialState(lastTriggerAt)
+  }
+
   function reset() {
-    samples = []
-    reversalCount = 0
-    travel = 0
+    modelState = ShakeModel.initialState(0)
   }
 
   function addSample(x, y, sampledAt) {
@@ -29,55 +53,35 @@ QtObject {
       return
     }
 
-    var next = samples.slice()
-    next.push({ x: Number(x), y: Number(y), at: Number(sampledAt) })
-
-    var cutoff = Number(sampledAt) - windowMs
-    while (next.length > 0 && next[0].at < cutoff) next.shift()
-    samples = next
-    analyze(Number(sampledAt))
-  }
-
-  function analyze(now) {
-    var reversals = 0
-    var totalTravel = 0
-    var previousDirection = 0
-
-    for (var i = 1; i < samples.length; i += 1) {
-      var dx = samples[i].x - samples[i - 1].x
-      var dy = samples[i].y - samples[i - 1].y
-      var distance = Math.sqrt(dx * dx + dy * dy)
-      totalTravel += distance
-
-      if (Math.abs(dx) < minimumStep || Math.abs(dx) < Math.abs(dy)) continue
-      var direction = dx > 0 ? 1 : -1
-      if (previousDirection !== 0 && direction !== previousDirection) reversals += 1
-      previousDirection = direction
-    }
-
-    reversalCount = reversals
-    travel = totalTravel
-
-    if (reversals < minimumReversals || totalTravel < minimumTravel) return
-    if (now - lastTriggerAt < cooldownMs) return
-
-    lastTriggerAt = now
-    var score = Math.min(1, Math.max(
-      reversals / (minimumReversals + 2),
-      totalTravel / (minimumTravel * 1.8)
-    ))
-    shaken(score)
-    reset()
+    var result = ShakeModel.addSample(
+      modelState,
+      { x: x, y: y, at: sampledAt },
+      config())
+    modelState = result.state
+    if (result.triggered) shaken(result.score)
   }
 
   function status() {
     return {
       enabled: enabled,
+      armed: armed,
       sampleWindowMs: windowMs,
-      samples: samples.length,
+      maxSampleGapMs: maxSampleGapMs,
+      samples: modelState.samples.length,
       reversals: reversalCount,
-      travel: Math.round(travel),
-      lastTriggerAt: lastTriggerAt
+      horizontalTravel: Math.round(travel),
+      verticalTravel: Math.round(verticalTravel),
+      peakSpeed: Math.round(peakSpeed),
+      lastTriggerAt: lastTriggerAt,
+      thresholds: {
+        minimumStep: minimumStep,
+        minimumReversals: minimumReversals,
+        minimumHorizontalTravel: minimumHorizontalTravel,
+        horizontalDominance: horizontalDominance,
+        maximumSegmentContribution: maximumSegmentContribution,
+        armingSpeed: armingSpeed,
+        cooldownMs: cooldownMs
+      }
     }
   }
 

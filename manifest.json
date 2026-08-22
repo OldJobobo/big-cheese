@@ -4,11 +4,26 @@
   "name": "Big Cheese",
   "version": "0.1.0",
   "author": "J. S. Brown",
-  "description": "Shake the pointer to make it impossible to lose.",
+  "license": "MIT",
+  "description": "Shake the pointer to reveal one crisp, enlarged cursor overlay.",
   "kinds": [
-    "service"
+    "service",
+    "bar-widget"
   ],
   "entryPoints": {
-    "service": "Service.qml"
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Big Cheese",
+    "description": "Locate the pointer, toggle shake detection, and show pulse activity.",
+    "category": "System",
+    "aliases": [
+      "cursor",
+      "pointer",
+      "accessibility"
+    ],
+    "defaultSection": "right",
+    "allowMultiple": false
   }
 }

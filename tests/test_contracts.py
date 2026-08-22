@@ -198,8 +198,9 @@ def test_bar_widget_uses_the_shared_service_without_duplicate_ipc():
     assert "fontSize: Math.max(1, Style.bar.iconFont - 1)" in BAR_WIDGET
     assert "property bool fullColorCheese: false" in BAR_WIDGET
     assert "iconComponent: root.fullColorCheese ? colorCheese : null" in BAR_WIDGET
-    assert 'source: Qt.resolvedUrl("assets/cheese-emoji.svg")' in BAR_WIDGET
-    assert (ROOT / "assets" / "cheese-emoji.svg").is_file()
+    assert 'source: Qt.resolvedUrl("assets/cheese-emoji.png")' in BAR_WIDGET
+    assert (ROOT / "assets" / "cheese-emoji.png").is_file()
+    assert not (ROOT / "assets" / "cheese-emoji.svg").exists()
     assert "togglePanel()" in BAR_WIDGET
     assert "toggleEnabled()" in BAR_WIDGET
     assert "IpcHandler" not in BAR_WIDGET
@@ -221,7 +222,8 @@ def test_left_click_opens_a_minimal_native_panel():
     assert PANEL.count("No one but you can move your cheese!") == 1
     assert 'title: "Shake to locate"' in PANEL
     assert 'title: "Find my cursor"' not in PANEL
-    assert 'title: "Support Big Cheese"' in PANEL
+    assert 'title: "Give some Cheddar"' in PANEL
+    assert 'title: "Support Big Cheese"' not in PANEL
     assert "cheeseService.toggleEnabled()" in PANEL
     assert "cheeseService.requestPulse(1)" not in PANEL
     assert 'Qt.openUrlExternally("https://ko-fi.com/oldjobobo")' in PANEL

@@ -10,7 +10,7 @@ Big Cheese is a tiny Omarchy plugin that makes your pointer big for two seconds
 when you shake it. Just the cursor, now much harder to lose.
 
 <p align="center">
-  <img src="assets/big-cheese-preview.png" alt="Big Cheese product preview showing its enlarged pointer, native panel, and key features">
+  <img src="assets/preview.png" alt="Big Cheese product preview showing its enlarged pointer, native panel, and key features">
 </p>
 
 ## Install
@@ -100,7 +100,7 @@ python -m pytest -q tests
 If Big Cheese saved you one frantic desktop search, you can
 [buy OldJobobo a coffee](https://ko-fi.com/oldjobobo).
 
-The color cheese is from [Microsoft Fluent Emoji](https://github.com/microsoft/fluentui-emoji),
-also MIT licensed.
+The color cheese is from [Google Noto Emoji](https://github.com/googlefonts/noto-emoji),
+released under the [SIL Open Font License 1.1](assets/LICENSE-NOTO-EMOJI.txt).
 
 MIT licensed. Cheese responsibly.

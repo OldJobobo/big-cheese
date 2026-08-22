@@ -25,7 +25,7 @@ The cheese lands in the right side of your bar.
 
 - **Shake the mouse:** find your cursor.
 - **Left-click the cheese:** open the tiny control panel.
-- **Double-click the cheese:** trade monochrome for full color until the shell restarts.
+- **Double-click the cheese:** unlock full color and a cheese pointer twice the standard size and duration until the shell restarts.
 - **Right-click the cheese:** turn shake detection on or off.
 
 That is the whole interface. Big Cheese does not need a settings cathedral.

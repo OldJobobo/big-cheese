@@ -4,7 +4,7 @@
 
 <h1 align="center">Big Cheese</h1>
 
-<p align="center"><strong>Your cursor wandered off. Give the mouse a shake.</strong></p>
+<p align="center"><strong>No one but you can move your cheese!</strong></p>
 
 Big Cheese is a tiny Omarchy plugin that makes your pointer big for two seconds
 when you shake it. Just the cursor, now much harder to lose.
@@ -24,7 +24,7 @@ The cheese lands in the right side of your bar.
 ## Use it
 
 - **Shake the mouse:** find your cursor.
-- **Left-click the cheese:** find it without the ceremony.
+- **Left-click the cheese:** open the tiny control panel.
 - **Right-click the cheese:** turn shake detection on or off.
 
 That is the whole interface. Big Cheese does not need a settings cathedral.
@@ -82,6 +82,7 @@ release routine, see [`RELEASING.md`](RELEASING.md).
 python -m pytest -q tests
 ```
 
-MIT licensed. Cheese responsibly.
+If Big Cheese saved you one frantic desktop search, you can
+[buy OldJobobo a coffee](https://ko-fi.com/oldjobobo).
 
-<p align="center"><strong>No one but you can move your cheese!</strong></p>
+MIT licensed. Cheese responsibly.

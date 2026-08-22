@@ -1,5 +1,8 @@
 # Big Cheese — One-Shot Implementation Plan
 
+> Historical implementation plan for v0.1.0. The shipped source, README, and
+> tests are authoritative where completed implementation details differ.
+
 ## Goal
 
 Turn the existing `jobo.big-cheese` service scaffold into a reliable Omarchy
@@ -8,8 +11,8 @@ to locate** behavior:
 
 1. sample the global Hyprland pointer position without intercepting input;
 2. recognize an intentional rapid left/right shake;
-3. temporarily enlarge the active cursor;
-4. restore the exact baseline theme and size automatically;
+3. temporarily render a large pointer at the exact active hotspot;
+4. remove the visual pointer automatically and restore prior cursor visibility;
 5. remain safe across repeated triggers, plugin reloads, command failures, and
    multi-monitor layouts.
 
@@ -57,46 +60,49 @@ a rolling time window:
 Ordinary pointer travel, a single fast swipe, crossing monitors, small hand
 jitter, and pointer warps must not trigger it.
 
-### Enlargement
+### Visual locate pulse
 
 On trigger:
 
-- derive a peak size from the shake score;
-- clamp it to a sensible range, initially `48–72 px` for a `24 px` baseline;
-- call `hyprctl setcursor <theme> <peak-size>` once;
-- hold the large cursor for approximately `900 ms`;
-- restore the captured baseline theme and size exactly once.
+- derive a display size from the shake score and clamp it to `48–72 px`;
+- immediately show a crisp white pointer with a strong dark outline whose tip
+  is anchored to the exact real cursor hotspot;
+- follow live cursor samples for approximately `2 seconds`;
+- remove the overlay once and restore the compositor cursor's prior visibility.
 
-The first release should use one clean size jump. Repeated `setcursor` reloads
-to fake a smooth ramp are explicitly out of scope because they add compositor
-work and can visibly flicker. A later visual-only overlay can provide smoother
-animation if wanted.
+The pulse contains no locate ring. Hyprland's native cursor is masked for the
+short overlay lifetime so live capture shows exactly one pointer. Native
+`setcursor` resizing is explicitly not the supported default because Hyprland
+can cache client-owned cursor surfaces after enlargement and restoration.
 
 ### Retriggering and lifecycle
 
 - Ignore or coalesce triggers while a pulse is active.
 - Keep the detector cooldown longer than the enlargement duration.
 - Disabling the service stops polling and clears detector history.
-- A detached pulse helper owns restoration so a Quickshell hot reload does not
-  strand the cursor at the enlarged size.
-- Startup performs stale-state recovery if a previous helper died before
-  restoring the cursor.
+- A QML timer owns the visual overlay lifetime; a guarded helper process owns
+  native cursor masking and restores the previous visibility if QML reloads.
+- Startup performs stale-state recovery only for installations upgraded from
+  the disabled native-helper implementation.
 
 ## Architecture
 
 ```text
 Service.qml
-├── CursorTracker.qml       global position samples
+├── CursorTracker.qml       shared global position samples
 ├── ShakeDetector.qml       QML adapter and detector state
 │   └── ShakeModel.js       deterministic detection algorithm
-└── CursorPulse.qml         baseline discovery + pulse lifecycle
-    └── scripts/cursor-pulse.sh
+├── CursorPulse.qml         visual pulse lifecycle + legacy recovery
+├── CursorLocator.qml       per-output input-transparent pointer surfaces
+│   └── CursorLocatorModel.js  coordinate and hotspot geometry
+└── scripts/cursor-pulse.sh disabled native fallback + migration recovery
+BarWidget.qml               pointer status and direct service controls
 
 IPC: omarchy-shell jobo-big-cheese <command>
 ```
 
-Keep exactly one cursor sampler and one pulse owner. Per-output windows are not
-needed because the compositor cursor itself is being resized.
+Keep exactly one cursor sampler and one pulse owner. Pre-create one transparent,
+input-empty overlay surface per output while enabled so activation is immediate.
 
 ## File-by-file implementation
 
@@ -187,9 +193,10 @@ Use two polling rates:
 - `idlePollIntervalMs: 110` while no gesture is armed;
 - `armedPollIntervalMs: 55` for the short armed window.
 
-Add an `armed` input bound from `ShakeDetector.armed`, then expose
-`effectivePollIntervalMs`. This reduces steady-state process launches while
-collecting enough samples once a fast movement begins.
+Add an `armed` input bound from `ShakeDetector.armed || CursorPulse.active`,
+then expose `effectivePollIntervalMs`. This reduces steady-state process
+launches while collecting enough samples once a fast movement begins and while
+the visual pointer follows the live cursor.
 
 Also:
 
@@ -200,63 +207,32 @@ Also:
   `status()`;
 - avoid animation or smoothing—the detector must consume raw coordinates.
 
-### 4. Add `services/CursorPulse.qml`
+### 4. Add `services/CursorPulse.qml` and `services/CursorLocator.qml`
 
-This component owns cursor baseline discovery and the enlargement state machine.
-It must not perform shake detection.
+`CursorPulse` owns a timer-driven visual pulse state machine and no shake
+recognition. Overlay mode is the default and exposes one `ready` property that
+is true immediately; it does not wait for legacy baseline discovery or helper
+recovery. `pulse(score)` rejects malformed scores, disabled state, and overlap;
+maps the clamped score to 48–72 px; sets `active` before returning; and records
+trigger, completion, outcome, and failure telemetry when the 2 second timer ends.
+Normal overlay pulses invoke only the guarded compositor-mask helper and never
+invoke `setcursor`.
 
-Properties:
+`CursorLocator` receives the existing shared `CursorTracker` and `CursorPulse`.
+It creates one transparent `PanelWindow` per `Quickshell.screens`, using
+`WlrLayer.Overlay`, `ExclusionMode.Ignore`, `WlrKeyboardFocus.None`, and an empty
+`Region` mask. Surfaces remain mapped while enabled. Convert global cursor
+coordinates to each screen's local coordinates, including negative origins,
+and draw a white pointer with a strong dark outline whose tip is exactly on the
+real hotspot. No ring or second pointer may sit behind it. The overlay must
+follow the pointer at the armed polling interval and intercept no input.
 
-```qml
-property int minimumPeakSize: 48
-property int maximumPeakSize: 72
-property int durationMs: 900
-property bool active: false
-property string baselineTheme: "default"
-property int baselineSize: 24
-property int activePeakSize: 0
-property int triggerCount: 0
-property int failureCount: 0
-property string lastError: ""
-```
+### 5. Retain `scripts/cursor-pulse.sh` for masking and migration recovery
 
-Baseline discovery order:
-
-Theme:
-
-1. `Quickshell.env("HYPRCURSOR_THEME")`;
-2. `Quickshell.env("XCURSOR_THEME")`;
-3. `gsettings get org.gnome.desktop.interface cursor-theme`;
-4. literal `default`.
-
-Size:
-
-1. valid positive `HYPRCURSOR_SIZE`;
-2. valid positive `XCURSOR_SIZE`;
-3. `gsettings get org.gnome.desktop.interface cursor-size`;
-4. `24`.
-
-Normalize the quoted `gsettings` theme output and reject invalid, empty, or
-non-positive size values. Probe once at startup and expose an IPC refresh path.
-Do not mutate environment variables.
-
-`pulse(score)` should:
-
-1. refuse a pulse when disabled, baseline discovery is incomplete, or another
-   pulse is active;
-2. map score to the clamped peak-size range;
-3. mark the pulse active before launching work;
-4. invoke the detached helper with argument-array execution, never shell-string
-   interpolation;
-5. start a local watchdog slightly longer than the requested duration;
-6. update telemetry from the helper’s completion marker or recovery probe;
-7. clear `active` when restoration is known complete or the watchdog recovers it.
-
-The helper URL should be resolved relative to `CursorPulse.qml` with
-`Qt.resolvedUrl("../scripts/cursor-pulse.sh")`, converted from a local file URL
-without accepting arbitrary input.
-
-### 5. Add `scripts/cursor-pulse.sh`
+Native resizing is explicitly disabled by default because Hyprland can cache
+active client-owned cursor surfaces after `setcursor`. Keep this hardened helper
+to mask the compositor cursor during normal overlays, restore stale markers from
+older installations, and support an opt-in native-resize fallback.
 
 Use Bash with strict mode:
 
@@ -268,6 +244,7 @@ set -euo pipefail
 Arguments must be positional and validated:
 
 ```text
+cursor-pulse.sh mask <duration-ms>
 cursor-pulse.sh pulse <theme> <baseline-size> <peak-size> <duration-ms>
 cursor-pulse.sh recover
 cursor-pulse.sh status
@@ -281,16 +258,22 @@ ${XDG_RUNTIME_DIR:-/tmp}/jobo-big-cheese-${UID}/
 
 The helper must:
 
+- mask and restore compositor cursor visibility for normal overlay pulses;
 - create the runtime directory with mode `0700`;
 - serialize access with `flock`;
 - validate theme as a non-empty argument and sizes/duration as bounded integers;
 - write a recovery marker atomically before enlargement;
 - record PID, baseline theme, baseline size, peak size, and deadline;
+- atomically record a timestamped terminal success/failure outcome so detached
+  enlargement failures cannot be reported as successful completions;
 - install `EXIT`, `INT`, `TERM`, and `HUP` traps that restore the baseline;
 - run `hyprctl setcursor "$theme" "$peak_size"`;
+- strictly parse the current signed integer cursor coordinates and dispatch that
+  unchanged absolute position so Hyprland refreshes the active cursor image;
 - sleep for the requested fractional duration;
-- run `hyprctl setcursor "$theme" "$baseline_size"`;
-- remove the marker only after successful restoration;
+- run `hyprctl setcursor "$theme" "$baseline_size"` and force the same safe
+  same-position refresh;
+- remove the marker only after successful visible restoration;
 - return non-zero and retain enough state for recovery when enlargement or
   restoration fails.
 
@@ -298,9 +281,10 @@ The helper must:
 still alive, and restore only when the owner is gone or its deadline is stale.
 It must be idempotent.
 
-Use a detached launch so the helper survives a Quickshell code reload long
-enough to restore the cursor. The service should run `recover` on startup and
-before accepting the first pulse.
+A native fallback launch remains detached so it can survive a Quickshell reload
+long enough to restore the cursor. The service runs `recover` on startup for
+migration safety. Visual pulses are accepted immediately and launch only the
+helper's guarded `mask` command; they never launch native `setcursor` resizing.
 
 Do not use `sudo`, write outside the runtime directory, or edit Hyprland config.
 
@@ -320,6 +304,10 @@ onShaken: function(score) {
 Bind tracker arming to detector arming. Keep polling active only while the
 service is enabled.
 
+Expose minimal readonly pulse-ready, pulse-active, failure, and error properties
+for the bar widget, plus shared `setEnabled`, `toggleEnabled`, and `requestPulse`
+methods so widget controls do not duplicate service or IPC state.
+
 Expand `statusPayload()` with:
 
 - plugin version;
@@ -337,34 +325,43 @@ status               JSON runtime state
 enable               enable sampling and detection
 disable              stop sampling and clear gesture state
 reset                 clear detector history and errors
-trigger [score]       manually test enlargement; score defaults to 1
-refresh-baseline      rerun theme/size discovery
-recover               run stale pulse recovery
+trigger               manually show the large pointer at score 1
+triggerScore <score>  show a clamped 48..72 px visual pointer
+refreshBaseline       rerun legacy fallback discovery
+recover               run legacy stale-state recovery
 ```
 
-Manual `trigger` must use the same `CursorPulse` path as a detected shake. Clamp
-its optional score and reject malformed values.
+Quickshell exposes QML method identifiers directly and IPC methods have fixed
+arity. The installed-compatible API therefore uses `refreshBaseline` rather
+than an identifier containing a hyphen, plus separate zero- and one-argument
+trigger methods. Both manual trigger methods must use the same `CursorPulse`
+path as a detected shake. Clamp explicit finite scores and reject malformed
+values.
 
-When disabled during an active pulse, do not kill the detached helper; let it
-restore on schedule.
+When disabled during an active visual pulse, let its short timer finish; the
+helper process must still restore the native cursor visibility.
 
 ### 7. Update manifest and documentation
 
-Keep the plugin service-only and `keepLoaded` by virtue of the Omarchy service
-loader. Do not add a bar widget or panel.
+Keep one long-lived service owner and add one compact `bar-widget` entry point.
+The widget uses `bar.shell.serviceFor("jobo.big-cheese")`, defaults to the right
+section, and allows only one instance. Its supported Font Awesome mouse-pointer
+monochrome cheese icon manually locates on left click, toggles the service on right click,
+and shows a restrained active pulse.
+Do not add a popup or settings panel.
 
 Update:
 
 - `README.md` — remove the scaffold warning, describe behavior, requirements,
   install, commands, tuning defaults, limitations, and uninstall behavior;
 - `CHANGELOG.md` — record the first working implementation;
-- `manifest.json` — keep version `0.1.0` until release and refine the description
-  only if needed;
+- `manifest.json` — keep version `0.1.0` until release and declare both the
+  service and bar-widget entry points;
 - `.gitignore` — include test and local runtime artifacts only; runtime state
   itself lives under `$XDG_RUNTIME_DIR` and should never enter the repository.
 
-Document that applications using custom client-owned cursor surfaces may not
-respond identically to compositor-provided cursor shapes.
+Document that native `setcursor` resizing is disabled because custom
+client-owned cursor surfaces can cache both enlargement and restoration.
 
 ## Automated tests
 
@@ -397,18 +394,34 @@ Verify:
 - malformed JSON increments failure state;
 - overlapping polls are prevented;
 - idle and armed intervals switch correctly;
+- repeated failures clear an armed detector and return polling to idle;
+- non-numeric coordinates and timestamps are rejected;
 - negative coordinates survive unchanged.
 
-### Pulse helper tests
+### Visual locator tests
+
+Verify pure score-to-size and geometry behavior, exact hotspot anchoring,
+negative-origin and horizontal/vertical monitor mapping, half-open output
+bounds, input transparency, pre-created overlay ownership, one guarded mask
+helper invocation in default mode, timer completion telemetry, and high-rate
+tracker binding while the overlay is active.
+
+### Legacy pulse helper tests
 
 Run `scripts/cursor-pulse.sh` against a fake `hyprctl` that records argv.
 Verify:
 
-- call order is enlarge then restore;
+- call order is enlarge, same-position refresh, restore, and refresh;
+- negative coordinates survive strict parsing and Lua-dispatch interpolation;
+- malformed coordinates fail the visible pulse and retain recoverable state;
+- legacy `movecursor` dispatch is a bounded fallback;
 - theme remains one argument even if it contains spaces;
 - baseline and peak sizes are passed exactly;
-- invalid sizes/durations are rejected before calling `hyprctl`;
+- invalid, overlong, and overflow-sized numeric values are rejected before
+  calling `hyprctl`;
+- crafted invalid markers and symlinked runtime child files are rejected;
 - the marker exists during a pulse and disappears after restoration;
+- terminal outcomes distinguish successful pulses from safely restored failures;
 - TERM executes restoration through the trap;
 - `recover` restores a stale marker once;
 - `recover` is idempotent;
@@ -420,8 +433,9 @@ Keep helper tests short by using tiny test durations.
 
 Verify:
 
-- manifest ID and service entry point;
-- only one `CursorTracker`, `ShakeDetector`, and `CursorPulse` instance exist;
+- manifest ID plus service and bar-widget entry points;
+- only one `CursorTracker`, `ShakeDetector`, `CursorPulse`, and `CursorLocator` instance exists;
+- the bar widget reuses the shared service and owns no `IpcHandler`;
 - every documented IPC command exists;
 - shake and manual trigger share `CursorPulse.pulse()`;
 - disabling clears detection but does not issue a second cursor mutation path.
@@ -432,11 +446,15 @@ Run from `~/Projects/big-cheese`:
 
 ```bash
 python -m json.tool manifest.json >/dev/null
+omarchy plugin validate .
 qmllint -I /usr/lib/qt6/qml \
   Service.qml \
+  BarWidget.qml \
   services/CursorTracker.qml \
   services/ShakeDetector.qml \
-  services/CursorPulse.qml
+  services/CursorPulse.qml \
+  services/CursorLocator.qml
+./tests/run-qml-tests.sh -o -,txt
 python -m pytest -q tests
 shellcheck scripts/cursor-pulse.sh
 ```
@@ -461,21 +479,23 @@ After automated tests pass:
    omarchy-shell jobo-big-cheese status | jq
    ```
 
-3. Run the manual pulse endpoint first and visually confirm enlargement and
-   exact restoration:
+3. Run the manual pulse endpoint first and capture before/during/after frames.
+   Confirm that the large overlay pointer appears at the exact hotspot during
+   the pulse and disappears after about 2 seconds:
 
    ```bash
-   omarchy-shell jobo-big-cheese trigger 1
+   omarchy-shell jobo-big-cheese trigger
+   omarchy-shell jobo-big-cheese triggerScore 1
    ```
 
-4. Verify restoration over desktop, native Wayland applications, XWayland
-   applications, window borders, and resize cursors.
+4. Verify the screenshot-visible overlay over desktop, native Wayland,
+   XWayland, window borders, and resize cursors without input interception.
 5. Shake deliberately on each monitor, including monitors with negative global
    origins.
 6. Check false positives during normal browsing, text selection, window drag,
    gaming-style fast movement, and monitor crossing.
-7. Trigger a pulse, then force a shell plugin rescan; verify the detached helper
-   still restores the cursor.
+7. Trigger a pulse, then force a shell plugin rescan; verify no native cursor
+   state is stranded and the overlay can trigger again after reload.
 8. Test disable/enable and verify polling launch count stops while disabled.
 9. Inspect Hyprland configuration health without changing it:
 
@@ -492,11 +512,12 @@ installation uses Omarchy’s plugin workflow.
 
 Implementation is complete when:
 
-- a deliberate shake reliably enlarges the cursor on the live Omarchy session;
+- a deliberate shake reliably shows the large pointer overlay on the live Omarchy session;
 - normal motion does not produce obvious false positives during a practical
   desktop test;
-- enlargement restores the baseline theme and size after every tested path;
-- Quickshell reload during a pulse does not strand the large cursor;
+- screenshot bounds prove the overlay appears during the pulse and disappears afterward;
+- normal pulses make zero native `setcursor` mutations;
+- Quickshell reload during a pulse cannot strand native cursor state;
 - only one cursor polling process can be active at a time;
 - idle polling remains at or below roughly ten launches per second and armed
   polling lasts only for the gesture window;
@@ -508,13 +529,13 @@ Implementation is complete when:
 
 ## Explicit non-goals for v0.1.0
 
-- smooth animated cursor-size interpolation;
-- a fullscreen visual halo or spotlight overlay;
-- a settings panel or bar widget;
-- modifying Hyprland Lua configuration;
+- native cursor-surface resizing as the default path;
+- fullscreen dimming, spotlight effects, or locate rings;
+- a settings or popup panel;
+- persistent Hyprland Lua configuration changes;
 - reading raw `/dev/input` devices;
 - supporting compositors other than Hyprland;
 - persisting tuning settings beyond source defaults.
 
-These can be considered only after the basic shake, resize, and restoration
-path is dependable.
+These can be considered only after the basic shake and visual locate path is
+dependable.

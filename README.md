@@ -37,8 +37,8 @@ Open [`cheese.toml`](cheese.toml). It is the whole settings file:
 ```toml
 start_enabled = true
 shake_effort = "normal" # gentle | normal | workout
-pointer_size = 72       # pixels: 48–128
-big_for_seconds = 2.0   # seconds: 0.5–5.0
+pointer_size = 72       # standard pixels: 48–128; cheese mode is 2×
+big_for_seconds = 2.0   # standard seconds: 0.5–5.0; cheese mode is 2×
 ```
 
 `gentle` notices a smaller shake. `workout` makes you earn your cheese. Restart

@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "author": "J. S. Brown",
   "license": "MIT",
-  "description": "Shake the pointer to reveal one crisp, enlarged cursor overlay.",
+  "description": "Shake to reveal one crisp, enlarged pointer—with a giant cheese Easter egg.",
   "kinds": [
     "service",
     "bar-widget"
@@ -16,7 +16,7 @@
   },
   "barWidget": {
     "displayName": "Big Cheese",
-    "description": "Locate the pointer, toggle shake detection, and show pulse activity.",
+    "description": "Find the pointer, control shake detection, and unlock a giant cheese Easter egg.",
     "category": "System",
     "aliases": [
       "cursor",

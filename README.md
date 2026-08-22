@@ -10,7 +10,7 @@ Big Cheese is a tiny Omarchy plugin that makes your pointer big for two seconds
 when you shake it. Just the cursor, now much harder to lose.
 
 <p align="center">
-  <img src="assets/big-cheese-preview.png" alt="Big Cheese displaying one enlarged cursor on an Omarchy desktop">
+  <img src="assets/big-cheese-preview.png" alt="Big Cheese product preview showing its enlarged pointer, native panel, and key features">
 </p>
 
 ## Install
@@ -25,9 +25,24 @@ The cheese lands in the right side of your bar.
 
 - **Shake the mouse:** find your cursor.
 - **Left-click the cheese:** open the tiny control panel.
+- **Double-click the cheese:** trade monochrome for full color until the shell restarts.
 - **Right-click the cheese:** turn shake detection on or off.
 
 That is the whole interface. Big Cheese does not need a settings cathedral.
+
+## Make it yours
+
+Open [`cheese.toml`](cheese.toml). It is the whole settings file:
+
+```toml
+start_enabled = true
+shake_effort = "normal" # gentle | normal | workout
+pointer_size = 72       # pixels: 48–128
+big_for_seconds = 2.0   # seconds: 0.5–5.0
+```
+
+`gentle` notices a smaller shake. `workout` makes you earn your cheese. Restart
+the Omarchy shell after saving.
 
 ## The good stuff
 
@@ -84,5 +99,8 @@ python -m pytest -q tests
 
 If Big Cheese saved you one frantic desktop search, you can
 [buy OldJobobo a coffee](https://ko-fi.com/oldjobobo).
+
+The color cheese is from [Microsoft Fluent Emoji](https://github.com/microsoft/fluentui-emoji),
+also MIT licensed.
 
 MIT licensed. Cheese responsibly.

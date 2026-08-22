@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 HARNESS = ROOT / "tests" / "quickshell-pulse" / "shell.qml"
 
 
-def test_default_visual_pulse_waits_for_mask_without_native_resize(tmp_path):
+def test_visual_pulse_applies_duration_multiplier_without_native_resize(tmp_path):
     config = tmp_path / "quickshell-test"
     services = config / "services"
     scripts = config / "scripts"
@@ -59,4 +59,4 @@ esac
     assert result.returncode == 0, output
 
     helper_calls = helper_log.read_text(encoding="utf-8").splitlines()
-    assert helper_calls == ["recover", "mask 100"], helper_calls
+    assert helper_calls == ["recover", "mask 200"], helper_calls

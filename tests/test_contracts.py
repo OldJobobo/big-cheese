@@ -1,5 +1,6 @@
 import json
 import re
+import struct
 from pathlib import Path
 
 
@@ -38,6 +39,7 @@ def test_complete_runtime_files_exist():
         "BarWidget.qml",
         "Panel.qml",
         "cheese.toml",
+        "assets/the-big-cheese.png",
         "services/CursorTracker.qml",
         "services/ShakeDetector.qml",
         "services/ShakeModel.js",
@@ -61,6 +63,13 @@ def test_service_loads_the_short_toml_config_into_runtime_components():
     assert "minimumPeakSize: root.configuredPointerSize" in SERVICE
     assert "maximumPeakSize: root.configuredPointerSize" in SERVICE
     assert "durationMs: root.configuredDurationMs" in SERVICE
+
+
+def test_easter_egg_texture_is_right_sized_for_the_overlay():
+    data = (ROOT / "assets" / "the-big-cheese.png").read_bytes()
+    assert data[:8] == b"\x89PNG\r\n\x1a\n"
+    assert struct.unpack(">II", data[16:24]) == (256, 256)
+    assert len(data) < 100_000
 
 
 def test_service_has_exactly_one_owner_for_each_runtime_component():
@@ -137,7 +146,9 @@ def test_visual_overlay_is_default_and_invokes_only_mask_helper():
     native_branch = PULSE.index("if (!recoveryReady)")
     assert visual_branch < native_branch
     visual_code = PULSE[visual_branch:native_branch]
-    assert 'maskProcess.command = [helperPath, "mask", String(durationMs)]' in visual_code
+    assert 'maskProcess.command = [helperPath, "mask", String(activeDurationMs)]' in visual_code
+    assert "activeDurationMs = effectiveDurationMs()" in visual_code
+    assert "durationMultiplier: root.easterEggEnabled ? 2 : 1" in SERVICE
     assert "maskProcess.running = true" in visual_code
     assert "active = true" in visual_code
     assert 'state === "masked"' in PULSE
@@ -170,6 +181,15 @@ def test_cursor_locator_owns_input_transparent_per_output_overlay():
     assert "border.width" not in LOCATOR
     assert "Canvas" not in LOCATOR
     assert "Shape.CurveRenderer" in LOCATOR
+    assert 'source: Qt.resolvedUrl("../assets/the-big-cheese.png")' in LOCATOR
+    assert "cheeseSize: root.pointerSize * 2" in LOCATOR
+    assert "rotation: 80" in LOCATOR
+    assert "Behavior on x" in LOCATOR
+    assert "Behavior on y" in LOCATOR
+    assert "NumberAnimation { duration: 50; easing.type: Easing.Linear }" in LOCATOR
+    assert "cheeseSize * 0.41" in LOCATOR
+    assert "cheeseSize * 0.05" in LOCATOR
+    assert "&& root.easterEggEnabled" in LOCATOR
     assert "cursor-palette.py" in LOCATOR
     assert "decodeURIComponent(value.substring(7))" in LOCATOR
     assert "strokeColor: root.pointerStroke" in LOCATOR
@@ -196,7 +216,8 @@ def test_bar_widget_uses_the_shared_service_without_duplicate_ipc():
     assert 'text: root.fullColorCheese ? "" : "\\uf7ef"' in BAR_WIDGET
     assert 'fontFamily: "Font Awesome 7 Free Solid"' in BAR_WIDGET
     assert "fontSize: Math.max(1, Style.bar.iconFont - 1)" in BAR_WIDGET
-    assert "property bool fullColorCheese: false" in BAR_WIDGET
+    assert "readonly property bool fullColorCheese: available" in BAR_WIDGET
+    assert "cheeseService.easterEggEnabled === true" in BAR_WIDGET
     assert "iconComponent: root.fullColorCheese ? colorCheese : null" in BAR_WIDGET
     assert 'source: Qt.resolvedUrl("assets/cheese-emoji.png")' in BAR_WIDGET
     assert (ROOT / "assets" / "cheese-emoji.png").is_file()
@@ -212,7 +233,9 @@ def test_left_click_opens_a_minimal_native_panel():
     assert "onTriggered: root.togglePanel()" in BAR_WIDGET
     assert "interval: Qt.styleHints.mouseDoubleClickInterval" in BAR_WIDGET
     assert "onDoubleClicked:" in BAR_WIDGET
-    assert "fullColorCheese = !fullColorCheese" in BAR_WIDGET
+    assert "cheeseService.toggleEasterEgg()" in BAR_WIDGET
+    assert "property bool easterEggEnabled: false" in SERVICE
+    assert "easterEggEnabled: root.easterEggEnabled" in SERVICE
     assert "KeyboardPanel" in PANEL
     assert "PanelHero" in PANEL
     assert "ToggleSwitch" in PANEL

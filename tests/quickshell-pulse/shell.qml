@@ -26,6 +26,7 @@ ShellRoot {
   CursorPulse {
     id: cursorPulse
     durationMs: 100
+    durationMultiplier: 2
   }
 
   Timer {
@@ -48,6 +49,7 @@ ShellRoot {
         if (!root.check(cursorPulse.pulse(0.5), "visual pulse was rejected")) return
         if (!root.check(cursorPulse.active, "pulse did not become active before display")) return
         if (!root.check(cursorPulse.activePeakSize === 60, "score did not map to 48..72 overlay range")) return
+        if (!root.check(cursorPulse.activeDurationMs === 200, "duration multiplier was not applied")) return
         if (!root.check(!cursorPulse.pulse(1), "overlapping pulse was accepted")) return
         root.pulseStarted = true
         return
@@ -69,6 +71,7 @@ ShellRoot {
       if (!root.check(cursorPulse.lastOutcome === "success", "success outcome was not recorded")) return
       if (!root.check(cursorPulse.lastOutcomeAt >= cursorPulse.pulseStartedAt, "outcome timestamp is wrong")) return
       if (!root.check(cursorPulse.activePeakSize === 0, "peak size was not cleared")) return
+      if (!root.check(cursorPulse.activeDurationMs === 0, "active duration was not cleared")) return
       if (!root.check(!cursorPulse.markerObserved, "visual pulse unexpectedly observed a helper marker")) return
       console.log("PULSE_QML_TEST_PASS")
       Qt.quit()

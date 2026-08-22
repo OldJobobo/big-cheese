@@ -18,9 +18,9 @@ Run from the repository root:
 python -m json.tool manifest.json >/dev/null
 omarchy plugin validate .
 qmllint -I /usr/lib/qt6/qml \
-  Service.qml BarWidget.qml services/CursorTracker.qml \
-  services/ShakeDetector.qml services/CursorPulse.qml \
-  services/CursorLocator.qml
+  Service.qml BarWidget.qml Panel.qml \
+  services/CursorTracker.qml services/ShakeDetector.qml \
+  services/CursorPulse.qml services/CursorLocator.qml
 ./tests/run-qml-tests.sh -o -,txt
 python -m pytest -q tests
 shellcheck scripts/cursor-pulse.sh
@@ -42,14 +42,19 @@ omarchy-shell jobo-big-cheese status | jq
 omarchy-shell jobo-big-cheese trigger
 ```
 
-Verify all of the following:
+Verify all of the following with the default `cheese.toml`:
 
-- the pulse shows one sharp pointer with no ring or doubled transition frame;
-- the pointer remains enlarged for two seconds and follows the real hotspot;
-- the native cursor returns after the pulse;
-- left click triggers and right click toggles the monochrome cheese bar widget;
-- `failureCount` is zero and `lastError` is empty;
-- `hyprctl configerrors` prints no errors.
+- a shake shows one sharp 72 px pointer for two seconds, with no ring or
+  doubled transition frame;
+- the pointer follows the real hotspot and the native cursor returns cleanly;
+- left-click opens the compact panel and **Give some Cheddar** opens the
+  official Ko-fi page;
+- right-click disables and re-enables shake detection;
+- double-click enables the full-color icon, and the next shake shows the
+  rotated 144 px cheese pointer for four seconds;
+- restarting the shell restores the monochrome icon and standard pointer mode;
+- `failureCount` is zero, `lastError` is empty, and `hyprctl configerrors`
+  prints no errors.
 
 ## Tag
 

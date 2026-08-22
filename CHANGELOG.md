@@ -2,26 +2,26 @@
 
 All notable changes to Big Cheese are documented here.
 
-## [0.1.0] - 2026-08-21
+## [0.1.0] - 2026-08-22
 
-- Added deterministic, warp-resistant horizontal shake detection with a bounded
-  rolling window, cooldown, normalized score, and headless behavior tests.
-- Added adaptive single-process cursor sampling with idle and armed intervals,
-  plus latency, launch, sample, and failure telemetry.
-- Added a crisp vector pointer overlay with exact hotspot anchoring,
-  input-transparent per-output surfaces, negative-origin monitor mapping, a
-  score-derived 48–72 px size, and fill/outline colors detected from the active
-  Xcursor theme's default arrow.
-- Added a guarded compositor-cursor mask with same-position refresh and a short
-  compositor-settle handshake at both ends; live transition capture on the
-  verified Hyprland version shows no stacked native and overlay pointers. The
-  helper restores the user's previous visibility setting after
-  the two-second pulse and can recover stale runtime state after interruption.
-- Kept native `setcursor` resizing as a disabled legacy fallback because
-  client-owned cursor surfaces can remain cached after theme-size changes.
-- Added a compact monochrome cheese bar icon with manual locate,
-  enable/disable controls, state tooltips, and pulse feedback.
-- Added status, manual trigger, baseline refresh, recovery, enable/disable, and
-  reset IPC commands.
-- Added QML model tests, Quickshell integration harnesses, helper lifecycle
-  regression coverage, installation guidance, and tuning documentation.
+- Added deterministic, warp-resistant horizontal shake detection with adaptive
+  cursor sampling, cooldown, normalized scoring, and runtime telemetry.
+- Added one crisp, theme-colored vector pointer with exact hotspot anchoring,
+  input-transparent per-output surfaces, negative-origin monitor support, and
+  a guarded compositor mask that prevents rings and doubled transition frames.
+- Added crash-safe cursor restoration, same-position compositor refreshes, and
+  stale-state recovery while preserving the user's prior cursor visibility.
+- Added the concise `cheese.toml` configuration for startup state, shake effort,
+  standard pointer size, and standard reveal duration.
+- Added a monochrome, theme-colored cheese bar icon: left-click opens the native
+  control panel, right-click toggles shake detection, and double-click enables
+  the temporary full-color Easter egg.
+- Added the rotated Big Cheese pointer, optimized for smooth tracking at twice
+  the configured standard size and duration; Easter egg state resets when the
+  shell restarts.
+- Added the native identity panel, official tagline, shake control, and
+  **Give some Cheddar** link to the official Ko-fi page.
+- Added status, trigger, baseline refresh, recovery, enable/disable, and reset
+  IPC commands, plus QML, helper-lifecycle, configuration, and contract tests.
+- Added release metadata, licensing and attribution, security guidance,
+  installation instructions, and marketplace preview artwork.

@@ -10,7 +10,7 @@ Big Cheese is a tiny Omarchy plugin that makes your pointer big for two seconds
 when you shake it. Just the cursor, now much harder to lose.
 
 <p align="center">
-  <img src="assets/preview.png" alt="Big Cheese product preview showing its enlarged pointer, native panel, and key features">
+  <img src="preview.png" alt="Big Cheese product preview showing its enlarged pointer, native panel, and key features">
 </p>
 
 ## Install

@@ -10,6 +10,7 @@ DETECTOR = (ROOT / "services" / "ShakeDetector.qml").read_text(encoding="utf-8")
 PULSE = (ROOT / "services" / "CursorPulse.qml").read_text(encoding="utf-8")
 LOCATOR = (ROOT / "services" / "CursorLocator.qml").read_text(encoding="utf-8")
 BAR_WIDGET = (ROOT / "BarWidget.qml").read_text(encoding="utf-8")
+PANEL = (ROOT / "Panel.qml").read_text(encoding="utf-8")
 HELPER = (ROOT / "scripts" / "cursor-pulse.sh").read_text(encoding="utf-8")
 
 
@@ -35,6 +36,7 @@ def test_complete_runtime_files_exist():
     for relative in (
         "Service.qml",
         "BarWidget.qml",
+        "Panel.qml",
         "services/CursorTracker.qml",
         "services/ShakeDetector.qml",
         "services/ShakeModel.js",
@@ -179,14 +181,33 @@ def test_startup_recovery_failure_is_reported_in_overlay_mode():
 def test_bar_widget_uses_the_shared_service_without_duplicate_ipc():
     assert 'serviceFor(root.moduleName)' in BAR_WIDGET
     assert 'text: "\\uf7ef"' in BAR_WIDGET
-    assert 'font.family: "Font Awesome 7 Free Solid"' in BAR_WIDGET
-    assert "font.pixelSize: Math.max(1, Style.bar.iconFont - 1)" in BAR_WIDGET
-    assert "anchors.verticalCenterOffset: 1" in BAR_WIDGET
+    assert 'fontFamily: "Font Awesome 7 Free Solid"' in BAR_WIDGET
+    assert "fontSize: Math.max(1, Style.bar.iconFont - 1)" in BAR_WIDGET
+    assert "iconComponent:" not in BAR_WIDGET
     assert "\\uf245" not in BAR_WIDGET
     assert "🧀" not in BAR_WIDGET
-    assert "requestPulse(1)" in BAR_WIDGET
+    assert "togglePanel()" in BAR_WIDGET
     assert "toggleEnabled()" in BAR_WIDGET
     assert "IpcHandler" not in BAR_WIDGET
+
+
+def test_left_click_opens_a_minimal_native_panel():
+    assert 'source: Qt.resolvedUrl("Panel.qml")' in BAR_WIDGET
+    assert "else if (mouseButton === Qt.LeftButton) togglePanel()" in BAR_WIDGET
+    assert "onDoubleClicked" not in BAR_WIDGET
+    assert "singleClickTimer" not in BAR_WIDGET
+    assert "KeyboardPanel" in PANEL
+    assert "PanelHero" in PANEL
+    assert "ToggleSwitch" in PANEL
+    assert 'source: Qt.resolvedUrl("assets/big-cheese-icon.png")' in PANEL
+    assert 'meta: "No one but you can move your cheese!"' in PANEL
+    assert PANEL.count("No one but you can move your cheese!") == 1
+    assert 'title: "Shake to locate"' in PANEL
+    assert 'title: "Find my cursor"' not in PANEL
+    assert 'title: "Support Big Cheese"' in PANEL
+    assert "cheeseService.toggleEnabled()" in PANEL
+    assert "cheeseService.requestPulse(1)" not in PANEL
+    assert 'Qt.openUrlExternally("https://ko-fi.com/oldjobobo")' in PANEL
 
 
 def test_bar_widget_prioritizes_service_errors_over_preparing_state():

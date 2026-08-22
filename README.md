@@ -84,3 +84,5 @@ python -m pytest -q tests
 ```
 
 MIT licensed. Cheese responsibly.
+
+<p align="center"><strong>No one but you can move your cheese!</strong></p>

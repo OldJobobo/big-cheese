@@ -94,7 +94,7 @@ Panel {
         PanelHero {
           width: parent.width
           title: "Big Cheese"
-          meta: "No one but you can move your cheese!"
+          meta: "Shake to locate"
           detail: "v" + root.version
           foreground: root.foreground
           fontFamily: root.fontFamily
@@ -111,6 +111,18 @@ Panel {
               mipmap: true
             }
           }
+        }
+
+        Text {
+          width: parent.width
+          text: "No one but you can move your cheese!"
+          color: root.foreground
+          opacity: 0.82
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          font.bold: true
+          wrapMode: Text.WordWrap
+          horizontalAlignment: Text.AlignHCenter
         }
 
         PanelSeparator {

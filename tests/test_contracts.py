@@ -200,7 +200,8 @@ def test_left_click_opens_a_minimal_native_panel():
     assert "PanelHero" in PANEL
     assert "ToggleSwitch" in PANEL
     assert 'source: Qt.resolvedUrl("assets/big-cheese-icon.png")' in PANEL
-    assert 'meta: "No one but you can move your cheese!"' in PANEL
+    assert 'meta: "Shake to locate"' in PANEL
+    assert 'text: "No one but you can move your cheese!"' in PANEL
     assert PANEL.count("No one but you can move your cheese!") == 1
     assert 'title: "Shake to locate"' in PANEL
     assert 'title: "Find my cursor"' not in PANEL

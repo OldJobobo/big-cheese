@@ -12,6 +12,7 @@ Item {
 
   readonly property string pluginVersion: "0.1.0"
   property bool enabled: true
+  property bool easterEggEnabled: false
   property string shakeEffort: "normal"
   property int configuredPointerSize: 72
   property int configuredDurationMs: 2000
@@ -43,6 +44,7 @@ Item {
     return {
       version: pluginVersion,
       enabled: enabled,
+      easterEggEnabled: easterEggEnabled,
       tracking: tracking,
       sampleCount: sampleCount,
       pollingIntervalMs: cursorTracker.effectivePollIntervalMs,
@@ -127,6 +129,10 @@ Item {
     setEnabled(!enabled)
   }
 
+  function toggleEasterEgg() {
+    easterEggEnabled = !easterEggEnabled
+  }
+
   Component.onCompleted: loadConfig()
 
   Process {
@@ -173,6 +179,7 @@ Item {
     minimumPeakSize: root.configuredPointerSize
     maximumPeakSize: root.configuredPointerSize
     durationMs: root.configuredDurationMs
+    durationMultiplier: root.easterEggEnabled ? 2 : 1
   }
 
   CursorLocator {
@@ -180,6 +187,7 @@ Item {
     cursorTracker: cursorTracker
     cursorPulse: cursorPulse
     enabled: root.enabled || cursorPulse.active
+    easterEggEnabled: root.easterEggEnabled
   }
 
   IpcHandler {

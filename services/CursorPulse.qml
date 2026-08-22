@@ -13,6 +13,8 @@ Item {
   property int minimumPeakSize: 48
   property int maximumPeakSize: 72
   property int durationMs: 2000
+  property real durationMultiplier: 1
+  property int activeDurationMs: 0
   property bool active: false
   property string baselineTheme: "default"
   property int baselineSize: 24
@@ -70,6 +72,12 @@ Item {
     if (!/^[0-9]+$/.test(value)) return 0
     var size = Number(value)
     return isFinite(size) && size > 0 && size <= 512 ? Math.round(size) : 0
+  }
+
+  function effectiveDurationMs() {
+    var base = Math.max(1, Number(durationMs) || 2000)
+    var multiplier = Math.max(1, Number(durationMultiplier) || 1)
+    return Math.round(base * multiplier)
   }
 
   function setFailure(message) {
@@ -149,6 +157,7 @@ Item {
       }
       activePeakSize = CursorPulseModel.overlaySize(
         score, minimumPeakSize, maximumPeakSize)
+      activeDurationMs = effectiveDurationMs()
       active = true
       overlayReady = false
       visualFinished = false
@@ -161,7 +170,7 @@ Item {
       // The helper acknowledges only after Hyprland has hidden its cursor.
       // Locator rendering waits for that acknowledgement, eliminating even a
       // one-frame doubled pointer at pulse startup.
-      maskProcess.command = [helperPath, "mask", String(durationMs)]
+      maskProcess.command = [helperPath, "mask", String(activeDurationMs)]
       maskProcess.running = true
       return true
     }
@@ -185,6 +194,7 @@ Item {
 
     activePeakSize = CursorPulseModel.peakSize(
       score, baselineSize, minimumPeakSize, maximumPeakSize)
+    activeDurationMs = effectiveDurationMs()
     active = true
     markerObserved = false
     pulseStartedAt = Date.now()
@@ -198,7 +208,7 @@ Item {
         baselineTheme,
         String(baselineSize),
         String(activePeakSize),
-        String(durationMs)
+        String(activeDurationMs)
       ])
       triggerCount += 1
       watchdogTimer.restart()
@@ -206,6 +216,7 @@ Item {
     } catch (error) {
       active = false
       activePeakSize = 0
+      activeDurationMs = 0
       setFailure(error)
       return false
     }
@@ -232,6 +243,7 @@ Item {
     overlayReady = false
     visualFinished = false
     activePeakSize = 0
+    activeDurationMs = 0
     lastOutcome = String(outcome || (success ? "success" : "failed"))
     lastOutcomeAt = Number(completedAt) || Date.now()
     if (success) {
@@ -272,6 +284,8 @@ Item {
       visualFinished: visualFinished,
       activePeakSize: activePeakSize,
       durationMs: durationMs,
+      durationMultiplier: durationMultiplier,
+      activeDurationMs: activeDurationMs,
       baselineReady: baselineReady,
       discoveryStatus: discoveryStatus,
       baselineTheme: baselineTheme,
@@ -331,7 +345,7 @@ Item {
 
   Timer {
     id: visualPulseTimer
-    interval: root.durationMs + 500
+    interval: root.activeDurationMs + 500
     repeat: false
     // If the helper stalls, keep the overlay visible rather than leaving the
     // user with no cursor. The helper's eventual exit remains authoritative.
@@ -347,7 +361,7 @@ Item {
 
   Timer {
     id: watchdogTimer
-    interval: root.durationMs + 450
+    interval: root.activeDurationMs + 450
     repeat: false
     onTriggered: {
       if (!root.recover("watchdog"))
@@ -402,12 +416,12 @@ Item {
             outcome.name === "success" ? "" : "cursor enlargement failed",
             outcome.name,
             outcome.completedAt)
-        } else if (Date.now() - root.pulseStartedAt > root.durationMs + 300) {
+        } else if (Date.now() - root.pulseStartedAt > root.activeDurationMs + 300) {
           root.completePulse(false, "cursor helper produced no correlated outcome")
         }
         return
       }
-      if (Date.now() - root.pulseStartedAt > root.durationMs)
+      if (Date.now() - root.pulseStartedAt > root.activeDurationMs)
         root.recover("watchdog")
     }
   }

@@ -11,6 +11,7 @@ Item {
   required property var cursorTracker
   required property var cursorPulse
   property bool enabled: true
+  property bool easterEggEnabled: false
   property color pointerFill: "#111318"
   property color pointerStroke: "#f8fafc"
   property bool paletteDetected: false
@@ -130,6 +131,7 @@ Item {
         width: locatorSurface.pointerGeometry.width
         height: locatorSurface.pointerGeometry.height
         visible: root.active && locatorSurface.cursorInside
+          && !root.easterEggEnabled
 
         Shape {
           id: arrowShape
@@ -176,6 +178,42 @@ Item {
               y: arrowShape.height * 2 / 64
             }
           }
+        }
+      }
+
+      Item {
+        id: cheesePointer
+
+        readonly property real cheeseSize: root.pointerSize * 2
+
+        x: locatorSurface.localPosition.x - cheeseSize * 0.41
+        y: locatorSurface.localPosition.y - cheeseSize * 0.05
+        width: cheeseSize
+        height: cheeseSize
+        visible: root.active && locatorSurface.cursorInside
+          && root.easterEggEnabled
+
+        Behavior on x {
+          enabled: cheesePointer.visible
+          NumberAnimation { duration: 50; easing.type: Easing.Linear }
+        }
+
+        Behavior on y {
+          enabled: cheesePointer.visible
+          NumberAnimation { duration: 50; easing.type: Easing.Linear }
+        }
+
+        Image {
+          anchors.fill: parent
+          source: Qt.resolvedUrl("../assets/the-big-cheese.png")
+          sourceSize.width: 256
+          sourceSize.height: 256
+          fillMode: Image.PreserveAspectFit
+          smooth: true
+          mipmap: true
+          antialiasing: true
+          rotation: 80
+          transformOrigin: Item.Center
         }
       }
     }

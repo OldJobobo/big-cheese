@@ -11,7 +11,8 @@ BarWidget {
   readonly property bool available: cheeseService !== null
   readonly property bool serviceEnabled: available && cheeseService.enabled
   readonly property bool pulseActive: available && cheeseService.pulseActive
-  property bool fullColorCheese: false
+  readonly property bool fullColorCheese: available
+    && cheeseService.easterEggEnabled === true
   readonly property bool opened: panelLoader.item
     ? panelLoader.item.opened === true : false
   readonly property bool popoutSwitchClosing: panelLoader.item
@@ -66,7 +67,7 @@ BarWidget {
   function handleDoubleClick(mouseButton) {
     if (!available || mouseButton !== Qt.LeftButton) return
     singleClickTimer.stop()
-    fullColorCheese = !fullColorCheese
+    cheeseService.toggleEasterEgg()
   }
 
   implicitWidth: button.implicitWidth

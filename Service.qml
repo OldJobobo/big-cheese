@@ -12,14 +12,30 @@ Item {
 
   readonly property string pluginVersion: "0.1.0"
   property bool enabled: true
+  property string shakeEffort: "normal"
+  property int configuredPointerSize: 72
+  property int configuredDurationMs: 2000
+  property var detectorConfig: ({
+    minimumStep: 14,
+    minimumReversals: 3,
+    minimumHorizontalTravel: 360,
+    armingSpeed: 450
+  })
+  property bool configReady: false
+  property string configError: ""
   property double lastShakeAt: 0
   readonly property bool tracking: cursorTracker.active
   readonly property int sampleCount: cursorTracker.sampleCount
   readonly property bool pulseActive: cursorPulse.active
   readonly property bool pulseReady: cursorPulse.ready
-  readonly property int failureCount: cursorPulse.failureCount + cursorTracker.failureCount
+  readonly property int failureCount: cursorPulse.failureCount
+    + cursorTracker.failureCount + (configError !== "" ? 1 : 0)
   readonly property string lastError: cursorPulse.lastError !== ""
-    ? cursorPulse.lastError : cursorTracker.lastError
+    ? cursorPulse.lastError
+    : cursorTracker.lastError !== "" ? cursorTracker.lastError : configError
+  readonly property string configPath: localPath(Qt.resolvedUrl("cheese.toml"))
+  readonly property string configReaderPath: localPath(
+    Qt.resolvedUrl("scripts/cheese-config.py"))
 
   signal shakeDetected(real score)
 
@@ -38,6 +54,14 @@ Item {
       triggerCount: cursorPulse.triggerCount,
       failureCount: failureCount,
       lastError: lastError,
+      config: {
+        ready: configReady,
+        path: configPath,
+        shakeEffort: shakeEffort,
+        pointerSize: configuredPointerSize,
+        durationMs: configuredDurationMs,
+        error: configError
+      },
       detector: shakeDetector.status(),
       cursorTracker: cursorTracker.status(),
       cursorPulse: cursorPulse.status(),
@@ -48,6 +72,40 @@ Item {
         stroke: String(cursorLocator.pointerStroke)
       }
     }
+  }
+
+  function localPath(url) {
+    var value = String(url || "")
+    if (value.indexOf("file://") !== 0) return ""
+    try {
+      var path = decodeURIComponent(value.substring(7))
+      return path.indexOf("/") === 0 ? path : ""
+    } catch (error) {
+      return ""
+    }
+  }
+
+  function loadConfig() {
+    if (configProcess.running) return false
+    if (configPath === "" || configReaderPath === "") {
+      configError = "cheese.toml path is invalid"
+      return false
+    }
+    configReady = false
+    configError = ""
+    configProcess.command = [configReaderPath, configPath]
+    configProcess.running = true
+    return true
+  }
+
+  function applyConfig(payload) {
+    shakeEffort = String(payload.shakeEffort || "normal")
+    configuredPointerSize = Number(payload.pointerSize) || 72
+    configuredDurationMs = Number(payload.durationMs) || 2000
+    detectorConfig = payload.detector || detectorConfig
+    configError = String(payload.error || "")
+    configReady = true
+    setEnabled(payload.startEnabled === true)
   }
 
   function requestPulse(score) {
@@ -69,6 +127,24 @@ Item {
     setEnabled(!enabled)
   }
 
+  Component.onCompleted: loadConfig()
+
+  Process {
+    id: configProcess
+    stdout: StdioCollector { id: configOutput; waitForEnd: true }
+    onExited: function(exitCode) {
+      if (exitCode !== 0) {
+        root.configError = "cheese.toml could not be read"
+        return
+      }
+      try {
+        root.applyConfig(JSON.parse(configOutput.text))
+      } catch (error) {
+        root.configError = "cheese.toml returned invalid settings"
+      }
+    }
+  }
+
   CursorTracker {
     id: cursorTracker
     active: root.enabled || cursorPulse.active
@@ -82,6 +158,10 @@ Item {
   ShakeDetector {
     id: shakeDetector
     enabled: root.enabled
+    minimumStep: root.detectorConfig.minimumStep
+    minimumReversals: root.detectorConfig.minimumReversals
+    minimumHorizontalTravel: root.detectorConfig.minimumHorizontalTravel
+    armingSpeed: root.detectorConfig.armingSpeed
     onShaken: function(score) {
       root.requestPulse(score)
     }
@@ -90,6 +170,9 @@ Item {
   CursorPulse {
     id: cursorPulse
     enabled: root.enabled
+    minimumPeakSize: root.configuredPointerSize
+    maximumPeakSize: root.configuredPointerSize
+    durationMs: root.configuredDurationMs
   }
 
   CursorLocator {

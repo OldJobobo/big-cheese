@@ -1,0 +1,6 @@
+# Big Cheese settings — save this file, then restart the Omarchy shell.
+
+start_enabled = true
+shake_effort = "normal" # gentle | normal | workout
+pointer_size = 72       # pixels: 48–128
+big_for_seconds = 2.0   # seconds: 0.5–5.0

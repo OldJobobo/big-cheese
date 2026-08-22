@@ -148,7 +148,7 @@ Panel {
         }
 
         ControlRow {
-          title: "Support Big Cheese"
+          title: "Give some Cheddar"
           detail: "ko-fi.com/oldjobobo"
           rowIndex: 1
           onActivated: root.openDonation()

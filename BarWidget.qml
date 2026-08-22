@@ -124,7 +124,7 @@ BarWidget {
 
     Image {
       anchors.fill: parent
-      source: Qt.resolvedUrl("assets/cheese-emoji.svg")
+      source: Qt.resolvedUrl("assets/cheese-emoji.png")
       sourceSize.width: 64
       sourceSize.height: 64
       fillMode: Image.PreserveAspectFit

@@ -7,8 +7,7 @@
 <p align="center"><strong>Your cursor wandered off. Give the mouse a shake.</strong></p>
 
 Big Cheese is a tiny Omarchy plugin that makes your pointer big for two seconds
-when you shake it. No rings. No radar sweep. Just the cursor, but now much harder
-to lose.
+when you shake it. Just the cursor, now much harder to lose.
 
 <p align="center">
   <img src="assets/big-cheese-preview.png" alt="Big Cheese displaying one enlarged cursor on an Omarchy desktop">
@@ -32,8 +31,8 @@ That is the whole interface. Big Cheese does not need a settings cathedral.
 
 ## The good stuff
 
-- One sharp pointer. No locate ring and no doubled cursor.
-- The real hotspot stays put, so clicking still works exactly where it should.
+- One sharp pointer, anchored to the real hotspot.
+- Clicking still works exactly where it should.
 - The large pointer borrows the fill and outline colors from your cursor theme.
 - Odd monitor layouts and negative screen coordinates are welcome.
 - Tiny jitters, normal swipes, and pointer warps do not set it off.

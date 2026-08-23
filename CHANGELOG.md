@@ -2,6 +2,17 @@
 
 All notable changes to Big Cheese are documented here.
 
+## [Unreleased]
+
+- Replaced per-sample `hyprctl` launches with one persistent, read-only
+  Hyprland cursor-position stream while preserving the 110/55 ms idle and
+  active sampling cadence.
+- Added short linear position interpolation to the standard vector pointer for
+  smoother motion without changing click handling or cursor restoration.
+- Added an input-transparent, theme-aware solid mouse trail with smooth Bézier
+  curves, `off`, `reveal`, and `always` modes, plus a cheddar-gold Easter egg
+  treatment and a compact three-state panel control.
+
 ## [0.1.0] - 2026-08-22
 
 - Added deterministic, warp-resistant horizontal shake detection with adaptive

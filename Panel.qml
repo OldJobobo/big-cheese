@@ -18,6 +18,11 @@ Panel {
   readonly property var barIdentity: hostWidget || root
   readonly property bool available: cheeseService !== null
   readonly property bool serviceEnabled: available && cheeseService.enabled
+  readonly property string mouseTrail: available
+    ? String(cheeseService.mouseTrail || "reveal") : "reveal"
+  readonly property string mouseTrailDetail: mouseTrail === "off"
+    ? "No tail"
+    : mouseTrail === "always" ? "Follows every move" : "Only when enlarged"
   readonly property color foreground: bar ? bar.barForeground : Color.foreground
   readonly property color accent: bar ? bar.urgent : Color.accent
   readonly property color dim: Qt.darker(foreground, 1.45)
@@ -32,12 +37,16 @@ Panel {
 
   function choose(index) {
     cursorActive = true
-    selectedIndex = Math.max(0, Math.min(1, index))
+    selectedIndex = Math.max(0, Math.min(2, index))
   }
 
-  function moveCursor(dy) {
+  function moveCursor(dx, dy) {
     if (!cursorActive) {
       choose(0)
+      return
+    }
+    if (selectedIndex === 1 && dx !== 0) {
+      cycleTrail(dx)
       return
     }
     if (dy !== 0) choose(selectedIndex + dy)
@@ -46,11 +55,23 @@ Panel {
   function activateCursor() {
     if (!cursorActive) return
     if (selectedIndex === 0) toggleDetection()
+    else if (selectedIndex === 1) cycleTrail(1)
     else openDonation()
   }
 
   function toggleDetection() {
     if (available) cheeseService.toggleEnabled()
+  }
+
+  function setTrailMode(mode) {
+    if (available) cheeseService.setMouseTrail(mode)
+  }
+
+  function cycleTrail(direction) {
+    var modes = ["off", "reveal", "always"]
+    var index = modes.indexOf(mouseTrail)
+    var step = direction < 0 ? -1 : 1
+    setTrailMode(modes[(index + step + modes.length) % modes.length])
   }
 
   function openDonation() {
@@ -77,12 +98,13 @@ Panel {
     PanelKeyCatcher {
       id: keyCatcher
       anchors.fill: parent
-      onMoveRequested: function(dx, dy) { root.moveCursor(dy) }
+      onMoveRequested: function(dx, dy) { root.moveCursor(dx, dy) }
       onActivateRequested: root.activateCursor()
       onCloseRequested: root.close()
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onTextKey: function(text) {
         if (text === "e" || text === "E") root.toggleDetection()
+        else if (text === "t" || text === "T") root.cycleTrail(1)
         else if (text === "d" || text === "D") root.openDonation()
       }
 
@@ -148,9 +170,24 @@ Panel {
         }
 
         ControlRow {
+          title: "Mouse trail"
+          detail: root.mouseTrailDetail
+          rowIndex: 1
+          onActivated: root.cycleTrail(1)
+
+          TrailModeSelector {
+            mode: root.mouseTrail
+            foreground: root.foreground
+            accent: root.accent
+            fontFamily: root.fontFamily
+            onModeSelected: function(mode) { root.setTrailMode(mode) }
+          }
+        }
+
+        ControlRow {
           title: "Give some Cheddar"
           detail: "ko-fi.com/oldjobobo"
-          rowIndex: 1
+          rowIndex: 2
           onActivated: root.openDonation()
 
           Text {
@@ -161,6 +198,64 @@ Panel {
             Layout.rightMargin: Style.space(7)
             Layout.alignment: Qt.AlignVCenter
           }
+        }
+      }
+    }
+  }
+
+  component TrailModeSelector: Row {
+    id: selector
+
+    required property string mode
+    required property color foreground
+    required property color accent
+    required property string fontFamily
+    signal modeSelected(string mode)
+
+    spacing: Style.space(3)
+    Layout.preferredWidth: implicitWidth
+    Layout.preferredHeight: Style.space(28)
+    Layout.alignment: Qt.AlignVCenter
+
+    Repeater {
+      model: [
+        { value: "off", label: "Off" },
+        { value: "reveal", label: "Reveal" },
+        { value: "always", label: "Always" }
+      ]
+
+      delegate: Rectangle {
+        id: segment
+
+        required property var modelData
+        readonly property bool selected: selector.mode === modelData.value
+
+        width: Style.space(modelData.value === "reveal" ? 54 : 48)
+        height: Style.space(28)
+        radius: Style.cornerRadius
+        color: selected
+          ? Style.selectedFillFor(selector.foreground, selector.accent)
+          : "transparent"
+        border.width: selected ? 1 : 0
+        border.color: selector.accent
+
+        Behavior on color { ColorAnimation { duration: 60 } }
+
+        Text {
+          anchors.centerIn: parent
+          text: segment.modelData.label
+          color: segment.selected ? selector.accent : root.dim
+          font.family: selector.fontFamily
+          font.pixelSize: Style.font.caption
+          font.bold: segment.selected
+        }
+
+        MouseArea {
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onEntered: root.choose(1)
+          onClicked: selector.modeSelected(segment.modelData.value)
         }
       }
     }

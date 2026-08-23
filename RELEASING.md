@@ -44,8 +44,8 @@ omarchy-shell jobo-big-cheese trigger
 
 Verify all of the following with the default `cheese.toml`:
 
-- a shake shows one sharp 72 px pointer for two seconds, with no ring or
-  doubled transition frame;
+- a shake shows one sharp 72 px pointer and a theme-accented glowing trail for
+  two seconds, with no ring or doubled transition frame;
 - the pointer follows the real hotspot and the native cursor returns cleanly;
 - left-click opens the compact panel and **Give some Cheddar** opens the
   official Ko-fi page;
@@ -53,6 +53,8 @@ Verify all of the following with the default `cheese.toml`:
 - double-click enables the full-color icon, and the next shake shows the
   rotated 144 px cheese pointer for four seconds;
 - restarting the shell restores the monochrome icon and standard pointer mode;
+- `mouse_trail = "off"` disables the effect and `"always"` follows the native
+  pointer without intercepting input;
 - `failureCount` is zero, `lastError` is empty, and `hyprctl configerrors`
   prints no errors.
 

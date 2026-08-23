@@ -1,6 +1,6 @@
 import QtQuick
 import Quickshell
-import "."
+import "services"
 
 ShellRoot {
   id: root
@@ -73,7 +73,10 @@ ShellRoot {
     tracker.clearErrors()
     root.waitingForProcessSample = true
     tracker.active = true
-    if (!check(tracker.launchCount === 1, "activation did not launch one poll")) return
+    tracker.ensureRunning()
+    if (!check(tracker.launchCount === 1,
+        "activation launched " + tracker.launchCount + " cursor streams: "
+          + tracker.lastError + " (" + tracker.helperPath + ")")) return
     if (!check(!tracker.poll(), "overlapping poll was not rejected")) return
   }
 

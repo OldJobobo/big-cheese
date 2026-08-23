@@ -25,6 +25,7 @@ def test_shipped_config_uses_normal_defaults():
         "shakeEffort": "normal",
         "pointerSize": 72,
         "durationMs": 2000,
+        "mouseTrail": "reveal",
         "detector": {
             "minimumStep": 14,
             "minimumReversals": 3,
@@ -41,7 +42,8 @@ def test_custom_config_selects_clear_user_facing_settings(tmp_path):
         "start_enabled = false\n"
         'shake_effort = "gentle"\n'
         "pointer_size = 96\n"
-        "big_for_seconds = 3.5\n",
+        "big_for_seconds = 3.5\n"
+        'mouse_trail = "always"\n',
         encoding="utf-8",
     )
 
@@ -51,6 +53,7 @@ def test_custom_config_selects_clear_user_facing_settings(tmp_path):
     assert payload["shakeEffort"] == "gentle"
     assert payload["pointerSize"] == 96
     assert payload["durationMs"] == 3500
+    assert payload["mouseTrail"] == "always"
     assert payload["detector"]["minimumReversals"] == 2
     assert payload["error"] == ""
 
@@ -62,6 +65,7 @@ def test_bad_values_fall_back_safely_and_explain_the_problem(tmp_path):
         'shake_effort = "gouda"\n'
         "pointer_size = 400\n"
         "big_for_seconds = 20\n"
+        'mouse_trail = "sparkles"\n'
         "mystery_rind = true\n",
         encoding="utf-8",
     )
@@ -72,5 +76,7 @@ def test_bad_values_fall_back_safely_and_explain_the_problem(tmp_path):
     assert payload["shakeEffort"] == "normal"
     assert payload["pointerSize"] == 72
     assert payload["durationMs"] == 2000
+    assert payload["mouseTrail"] == "reveal"
     assert "unknown setting: mystery_rind" in payload["error"]
+    assert "mouse_trail must be off, reveal, or always" in payload["error"]
     assert "shake_effort must be gentle, normal, or workout" in payload["error"]

@@ -16,6 +16,7 @@ Item {
   property string shakeEffort: "normal"
   property int configuredPointerSize: 72
   property int configuredDurationMs: 2000
+  property string mouseTrail: "reveal"
   property var detectorConfig: ({
     minimumStep: 14,
     minimumReversals: 3,
@@ -62,6 +63,7 @@ Item {
         shakeEffort: shakeEffort,
         pointerSize: configuredPointerSize,
         durationMs: configuredDurationMs,
+        mouseTrail: mouseTrail,
         error: configError
       },
       detector: shakeDetector.status(),
@@ -104,6 +106,7 @@ Item {
     shakeEffort = String(payload.shakeEffort || "normal")
     configuredPointerSize = Number(payload.pointerSize) || 72
     configuredDurationMs = Number(payload.durationMs) || 2000
+    mouseTrail = String(payload.mouseTrail || "reveal")
     detectorConfig = payload.detector || detectorConfig
     configError = String(payload.error || "")
     configReady = true
@@ -112,9 +115,9 @@ Item {
 
   function requestPulse(score) {
     if (!cursorPulse.pulse(score)) return false
-    // Refresh the shared global position immediately; visual mode never starts
-    // a cursor-size helper or a second tracker.
-    cursorTracker.poll()
+    // Keep the shared read-only position stream alive; visual mode never
+    // starts a second tracker.
+    cursorTracker.ensureRunning()
     lastShakeAt = Date.now()
     shakeDetected(score)
     return true
@@ -127,6 +130,14 @@ Item {
 
   function toggleEnabled() {
     setEnabled(!enabled)
+  }
+
+  function setMouseTrail(value) {
+    var mode = String(value || "")
+    if (mode !== "off" && mode !== "reveal" && mode !== "always")
+      return false
+    mouseTrail = mode
+    return true
   }
 
   function toggleEasterEgg() {
@@ -188,6 +199,7 @@ Item {
     cursorPulse: cursorPulse
     enabled: root.enabled || cursorPulse.active
     easterEggEnabled: root.easterEggEnabled
+    trailMode: root.mouseTrail
   }
 
   IpcHandler {

@@ -14,7 +14,10 @@ DEFAULTS = {
     "shake_effort": "normal",
     "pointer_size": 72,
     "big_for_seconds": 2.0,
+    "mouse_trail": "reveal",
 }
+
+TRAIL_MODES = {"off", "reveal", "always"}
 
 SHAKE_PRESETS = {
     "gentle": {
@@ -82,11 +85,18 @@ def read_config(path: Path) -> dict[str, Any]:
     else:
         errors.append("big_for_seconds must be from 0.5 to 5.0")
 
+    trail = loaded.get("mouse_trail", DEFAULTS["mouse_trail"])
+    if isinstance(trail, str) and trail in TRAIL_MODES:
+        values["mouse_trail"] = trail
+    else:
+        errors.append("mouse_trail must be off, reveal, or always")
+
     return {
         "startEnabled": values["start_enabled"],
         "shakeEffort": values["shake_effort"],
         "pointerSize": values["pointer_size"],
         "durationMs": round(values["big_for_seconds"] * 1000),
+        "mouseTrail": values["mouse_trail"],
         "detector": SHAKE_PRESETS[values["shake_effort"]],
         "error": "; ".join(errors),
     }

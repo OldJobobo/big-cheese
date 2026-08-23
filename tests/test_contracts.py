@@ -49,6 +49,7 @@ def test_complete_runtime_files_exist():
         "services/CursorLocatorModel.js",
         "scripts/cursor-pulse.sh",
         "scripts/cursor-palette.py",
+        "scripts/cursor-position.py",
         "scripts/cheese-config.py",
     ):
         assert (ROOT / relative).is_file()
@@ -63,13 +64,15 @@ def test_service_loads_the_short_toml_config_into_runtime_components():
     assert "minimumPeakSize: root.configuredPointerSize" in SERVICE
     assert "maximumPeakSize: root.configuredPointerSize" in SERVICE
     assert "durationMs: root.configuredDurationMs" in SERVICE
+    assert "trailMode: root.mouseTrail" in SERVICE
 
 
-def test_easter_egg_texture_is_right_sized_for_the_overlay():
-    data = (ROOT / "assets" / "the-big-cheese.png").read_bytes()
-    assert data[:8] == b"\x89PNG\r\n\x1a\n"
-    assert struct.unpack(">II", data[16:24]) == (256, 256)
-    assert len(data) < 100_000
+def test_overlay_textures_are_right_sized():
+    cheese = (ROOT / "assets" / "the-big-cheese.png").read_bytes()
+    assert cheese[:8] == b"\x89PNG\r\n\x1a\n"
+    assert struct.unpack(">II", cheese[16:24]) == (256, 256)
+    assert len(cheese) < 100_000
+
 
 
 def test_service_has_exactly_one_owner_for_each_runtime_component():
@@ -128,13 +131,18 @@ def test_detector_is_a_thin_adapter_over_the_model():
     assert "Math.sqrt" not in DETECTOR
 
 
-def test_tracker_is_adaptive_and_guards_overlapping_processes():
+def test_tracker_uses_one_adaptive_read_only_cursor_stream():
     assert "idlePollIntervalMs: 110" in TRACKER
     assert "armedPollIntervalMs: 55" in TRACKER
     assert "armed ? armedPollIntervalMs : idlePollIntervalMs" in TRACKER
     assert "armed: shakeDetector.armed || cursorPulse.active" in SERVICE
     assert "if (!active || launchPending || cursorProcess.running) return false" in TRACKER
-    assert 'cursorProcess.command = ["hyprctl", "cursorpos", "-j"]' in TRACKER
+    assert 'Qt.resolvedUrl("../scripts/cursor-position.py")' in TRACKER
+    assert "cursorProcess.command = [helperPath, String(armedPollIntervalMs)]" in TRACKER
+    assert "now - lastSampleAt < effectivePollIntervalMs - 2" in TRACKER
+    assert 'command = ["hyprctl"' not in TRACKER
+    assert "signal observed(real x, real y, double sampledAt)" in TRACKER
+    assert "rawCursorX = payload.x" in TRACKER
     assert "signal samplingInvalidated()" in TRACKER
     assert "onSamplingInvalidated: shakeDetector.clearGesture()" in SERVICE
 
@@ -162,7 +170,7 @@ def test_visual_overlay_is_default_and_invokes_only_mask_helper():
     assert 'onTriggered: root.setFailure("cursor mask exceeded its visual deadline")' in PULSE
     assert "maskProcess.running = false" not in PULSE
     assert "cursorPulse.active && cursorPulse.overlayReady" in LOCATOR
-    assert "cursorTracker.poll()" in SERVICE
+    assert "cursorTracker.ensureRunning()" in SERVICE
 
 
 def test_cursor_locator_owns_input_transparent_per_output_overlay():
@@ -179,8 +187,27 @@ def test_cursor_locator_owns_input_transparent_per_output_overlay():
     assert "hyprctl" not in LOCATOR
     assert "locateEcho" not in LOCATOR
     assert "border.width" not in LOCATOR
-    assert "Canvas" not in LOCATOR
     assert "Shape.CurveRenderer" in LOCATOR
+    assert "renderTarget: Canvas.Image" in LOCATOR
+    assert "renderStrategy: Canvas.Threaded" in LOCATOR
+    assert "function drawLayer(" in LOCATOR
+    assert "context.quadraticCurveTo(" in LOCATOR
+    assert "var taper = life * life * (3 - 2 * life)" in LOCATOR
+    assert "context.fill()" in LOCATOR
+    assert 'context.lineCap = "round"' not in LOCATOR
+    assert "lifetimeMs: root.easterEggEnabled ? 1200 : 950" in LOCATOR
+    assert "markDirty(dirty)" in LOCATOR
+    assert "trailAnchorSize * (root.active && root.easterEggEnabled ? 0.18 : 0.32)" in LOCATOR
+    assert "trailAnchorSize * (root.active && root.easterEggEnabled ? 0.9 : 0.58)" in LOCATOR
+    assert "Math.max(90, trailAnchorSize * 1.25)" in LOCATOR
+    assert "Math.max(40, trailAnchorSize * 0.9)" in LOCATOR
+    assert "locatorSurface.trailStartWidth * 0.68" in LOCATOR
+    assert "locatorSurface.trailStartWidth * 0.14" in LOCATOR
+    assert 'root.trailMode === "always"' in LOCATOR
+    assert 'root.trailMode === "reveal" && root.active' in LOCATOR
+    assert LOCATOR.count("Behavior on x") == 3
+    assert LOCATOR.count("Behavior on y") == 3
+    assert "enabled: pointer.visible" in LOCATOR
     assert 'source: Qt.resolvedUrl("../assets/the-big-cheese.png")' in LOCATOR
     assert "cheeseSize: root.pointerSize * 2" in LOCATOR
     assert "rotation: 80" in LOCATOR
@@ -244,6 +271,14 @@ def test_left_click_opens_a_minimal_native_panel():
     assert 'text: "No one but you can move your cheese!"' in PANEL
     assert PANEL.count("No one but you can move your cheese!") == 1
     assert 'title: "Shake to locate"' in PANEL
+    assert 'title: "Mouse trail"' in PANEL
+    assert '{ value: "off", label: "Off" }' in PANEL
+    assert '{ value: "reveal", label: "Reveal" }' in PANEL
+    assert '{ value: "always", label: "Always" }' in PANEL
+    assert 'mouseTrail === "always" ? "Follows every move"' in PANEL
+    assert "cheeseService.setMouseTrail(mode)" in PANEL
+    assert "function setMouseTrail(value)" in SERVICE
+    assert 'mode !== "off" && mode !== "reveal" && mode !== "always"' in SERVICE
     assert 'title: "Find my cursor"' not in PANEL
     assert 'title: "Give some Cheddar"' in PANEL
     assert 'title: "Support Big Cheese"' not in PANEL

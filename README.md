@@ -24,7 +24,7 @@ The cheese lands in the right side of your bar.
 ## Use it
 
 - **Shake the mouse:** find your cursor.
-- **Left-click the cheese:** open the tiny control panel.
+- **Left-click the cheese:** open the tiny control panel and choose **Off**, **Reveal**, or **Always** for the trail.
 - **Double-click the cheese:** unlock full color and a cheese pointer twice the standard size and duration until the shell restarts.
 - **Right-click the cheese:** turn shake detection on or off.
 
@@ -39,16 +39,18 @@ start_enabled = true
 shake_effort = "normal" # gentle | normal | workout
 pointer_size = 72       # standard pixels: 48–128; cheese mode is 2×
 big_for_seconds = 2.0   # standard seconds: 0.5–5.0; cheese mode is 2×
+mouse_trail = "reveal" # off | reveal | always
 ```
 
-`gentle` notices a smaller shake. `workout` makes you earn your cheese. Restart
-the Omarchy shell after saving.
+`gentle` notices a smaller shake. `workout` makes you earn your cheese. The
+panel changes the trail for the current shell session; `cheese.toml` remains
+the restart default. Restart the Omarchy shell after editing the file.
 
 ## The good stuff
 
 - One sharp pointer, anchored to the real hotspot.
 - Clicking still works exactly where it should.
-- The large pointer borrows the fill and outline colors from your cursor theme.
+- The large pointer and optional glowing trail borrow colors from your cursor theme.
 - Odd monitor layouts and negative screen coordinates are welcome.
 - Tiny jitters, normal swipes, and pointer warps do not set it off.
 

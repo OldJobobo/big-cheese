@@ -5,16 +5,20 @@ worktree after the repository and installed-plugin checks below pass.
 
 ## Prepare
 
-1. Update `manifest.json` and `Service.qml` to the same version.
-2. Move changelog entries from `Unreleased` to `[x.y.z] - YYYY-MM-DD`.
-3. Confirm `README.md` matches the shipped defaults and dependencies.
-4. Confirm `LICENSE` and `manifest.json` declare the same license.
+1. Finish and review the summary under `Unreleased` in `CHANGELOG.md`.
+2. Run `./scripts/release.py prepare x.y.z --date YYYY-MM-DD`. This updates
+   `VERSION`, `manifest.json`, `Service.qml`, and the dated changelog heading as
+   one guarded operation; it does not commit, tag, or push.
+3. Run `./scripts/release.py check` and review the resulting diff.
+4. Confirm `README.md` matches the shipped defaults and dependencies.
+5. Confirm `LICENSE` and `manifest.json` declare the same license.
 
 ## Validate
 
 Run from the repository root:
 
 ```bash
+./scripts/release.py check
 python -m json.tool manifest.json >/dev/null
 omarchy plugin validate .
 qmllint -I /usr/lib/qt6/qml \
@@ -24,6 +28,7 @@ qmllint -I /usr/lib/qt6/qml \
 ./tests/run-qml-tests.sh -o -,txt
 python -m pytest -q tests
 shellcheck scripts/cursor-pulse.sh
+python -m py_compile scripts/*.py
 git diff --check
 git status --short
 ```
@@ -47,8 +52,9 @@ Verify all of the following with the default `cheese.toml`:
 - a shake shows one sharp 72 px pointer and a theme-accented glowing trail for
   two seconds, with no ring or doubled transition frame;
 - the pointer follows the real hotspot and the native cursor returns cleanly;
-- left-click opens the compact panel and **Give some Cheddar** opens the
-  official Ko-fi page;
+- left-click opens the compact panel, the trail selector changes modes, the
+  cursor-color theme toggle updates both pointer sizes and restores cleanly,
+  and **Give some Cheddar** opens the official Ko-fi page;
 - right-click disables and re-enables shake detection;
 - double-click enables the full-color icon, and the next shake shows the
   rotated 144 px cheese pointer for four seconds;
@@ -56,14 +62,18 @@ Verify all of the following with the default `cheese.toml`:
 - `mouse_trail = "off"` disables the effect and `"always"` follows the native
   pointer without intercepting input;
 - `failureCount` is zero, `lastError` is empty, and `hyprctl configerrors`
-  prints no errors.
+  prints no errors;
+- `./scripts/theme-cursor.py apply-omarchy` temporarily recolors normal cursor
+  shapes, and `./scripts/theme-cursor.py restore` restores the recorded theme
+  and removes its runtime files and discovery symlink.
 
 ## Tag
 
-After committing the release, create an annotated tag matching the manifest:
+After committing the release, create an annotated tag matching `VERSION`:
 
 ```bash
-git tag -a v0.1.0 -m "Big Cheese v0.1.0"
+version=$(cat VERSION)
+git tag -a "v${version}" -m "Big Cheese v${version}"
 git push origin main --follow-tags
 ```
 

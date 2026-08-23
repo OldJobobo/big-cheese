@@ -48,6 +48,17 @@ TestCase {
     compare(result.state.samples.length, 0)
   }
 
+  function test_motionSpeedTracksShakeTempo() {
+    var initial = ShakeModel.addSample(
+      ShakeModel.initialState(0), { x: 0, y: 0, at: 100 }, config())
+    var slow = ShakeModel.addSample(
+      initial.state, { x: 120, y: 0, at: 300 }, config())
+    var fast = ShakeModel.addSample(
+      initial.state, { x: 120, y: 0, at: 140 }, config())
+    verify(slow.motionSpeed > 0)
+    verify(fast.motionSpeed > slow.motionSpeed)
+  }
+
   function test_singleFastSwipeDoesNotTrigger() {
     var result = feed([
       { x: 0, y: 0, at: 0 },

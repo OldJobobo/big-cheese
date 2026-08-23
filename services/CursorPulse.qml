@@ -18,7 +18,16 @@ Item {
   property bool active: false
   property string baselineTheme: "default"
   property int baselineSize: 24
-  property int activePeakSize: 0
+  property real activePeakSize: 0
+  property bool growEnabled: false
+  property bool activeGrowEnabled: false
+  property real growthBaseSize: 0
+  property real growthMaximumSize: 0
+  property real growthStrength: 0
+  property double growthLastMotionAt: 0
+  property double growthLastFrameAt: 0
+  property bool growthStopRequested: false
+  property int growthMaximumDurationMs: 30000
   property int triggerCount: 0
   property int completionCount: 0
   property int recoveryCount: 0
@@ -78,6 +87,24 @@ Item {
     var base = Math.max(1, Number(durationMs) || 2000)
     var multiplier = Math.max(1, Number(durationMultiplier) || 1)
     return Math.round(base * multiplier)
+  }
+
+  function addGrowthMotion(speed, sampledAt, armingSpeed) {
+    if (!active || !activeGrowEnabled) return false
+    var threshold = Math.max(1, (Number(armingSpeed) || 450) * 3)
+    growthStrength = Math.max(0, Math.min(1, Number(speed) / threshold))
+    growthLastMotionAt = Math.max(growthLastMotionAt,
+      Number(sampledAt) || Date.now())
+    return true
+  }
+
+  function requestGrowthStop() {
+    if (!active || !activeGrowEnabled || growthStopRequested
+        || !maskProcess.running || helperPath === "") return false
+    growthStopRequested = true
+    maskStopProcess.command = [helperPath, "unmask"]
+    maskStopProcess.running = true
+    return true
   }
 
   function setFailure(message) {
@@ -157,7 +184,16 @@ Item {
       }
       activePeakSize = CursorPulseModel.overlaySize(
         score, minimumPeakSize, maximumPeakSize)
-      activeDurationMs = effectiveDurationMs()
+      activeGrowEnabled = growEnabled
+      growthBaseSize = activePeakSize
+      growthMaximumSize = Math.min(256, growthBaseSize
+        * (durationMultiplier > 1 ? 1.75 : 3))
+      growthStrength = 0
+      growthLastMotionAt = Date.now()
+      growthLastFrameAt = 0
+      growthStopRequested = false
+      activeDurationMs = activeGrowEnabled
+        ? growthMaximumDurationMs : effectiveDurationMs()
       active = true
       overlayReady = false
       visualFinished = false
@@ -242,6 +278,13 @@ Item {
     active = false
     overlayReady = false
     visualFinished = false
+    activeGrowEnabled = false
+    growthBaseSize = 0
+    growthMaximumSize = 0
+    growthStrength = 0
+    growthLastMotionAt = 0
+    growthLastFrameAt = 0
+    growthStopRequested = false
     activePeakSize = 0
     activeDurationMs = 0
     lastOutcome = String(outcome || (success ? "success" : "failed"))
@@ -282,7 +325,12 @@ Item {
       active: active,
       overlayReady: overlayReady,
       visualFinished: visualFinished,
-      activePeakSize: activePeakSize,
+      activePeakSize: Math.round(activePeakSize),
+      growEnabled: growEnabled,
+      activeGrowEnabled: activeGrowEnabled,
+      growthBaseSize: Math.round(growthBaseSize),
+      growthMaximumSize: Math.round(growthMaximumSize),
+      growthStrength: growthStrength,
       durationMs: durationMs,
       durationMultiplier: durationMultiplier,
       activeDurationMs: activeDurationMs,
@@ -340,6 +388,45 @@ Item {
       } else {
         root.completePulse(false, "cursor mask ended before the visual pulse")
       }
+    }
+  }
+
+  Timer {
+    id: growthTimer
+    interval: 16
+    repeat: true
+    running: root.active && root.overlayReady
+      && root.activeGrowEnabled && !root.growthStopRequested
+    onRunningChanged: if (running) root.growthLastFrameAt = Date.now()
+    onTriggered: {
+      var now = Date.now()
+      var elapsed = Math.max(1, Math.min(100, now - root.growthLastFrameAt))
+      root.growthLastFrameAt = now
+      if (now - root.growthLastMotionAt <= 240) {
+        root.activePeakSize = CursorPulseModel.growSize(
+          root.activePeakSize,
+          elapsed,
+          root.growthStrength,
+          root.growthMaximumSize)
+      } else {
+        root.growthStrength *= 0.86
+        root.activePeakSize = CursorPulseModel.shrinkSize(
+          root.activePeakSize, root.growthBaseSize, elapsed)
+        if (now - root.pulseStartedAt >= 360
+            && root.activePeakSize <= root.growthBaseSize + 0.5) {
+          root.activePeakSize = root.growthBaseSize
+          root.requestGrowthStop()
+        }
+      }
+    }
+  }
+
+  Process {
+    id: maskStopProcess
+    stdout: StdioCollector { waitForEnd: true }
+    onExited: function(exitCode) {
+      if (exitCode !== 0 && root.active && root.activeGrowEnabled)
+        root.setFailure("cursor growth could not request restoration")
     }
   }
 

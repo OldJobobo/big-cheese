@@ -34,4 +34,22 @@ TestCase {
     compare(CursorPulseModel.peakSize(1, 24, 48, 72), 72)
     compare(CursorPulseModel.peakSize(0.5, 60, 48, 72), 67)
   }
+
+  function test_fast_shaking_grows_faster_than_slow_shaking() {
+    var slow = CursorPulseModel.growSize(72, 100, 0.2, 144)
+    var fast = CursorPulseModel.growSize(72, 100, 1, 144)
+    verify(slow > 72)
+    verify(fast > slow)
+    compare(CursorPulseModel.growSize(143, 100, 1, 144), 144)
+  }
+
+  function test_growth_shrinks_fluidly_toward_the_base_size() {
+    var first = CursorPulseModel.shrinkSize(144, 72, 16)
+    var later = CursorPulseModel.shrinkSize(first, 72, 100)
+    verify(first < 144)
+    verify(first > 72)
+    verify(later < first)
+    verify(later > 72)
+    compare(CursorPulseModel.shrinkSize(72, 72, 100), 72)
+  }
 }

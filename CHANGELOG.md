@@ -4,14 +4,27 @@ All notable changes to Big Cheese are documented here.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-23
+
 - Replaced per-sample `hyprctl` launches with one persistent, read-only
   Hyprland cursor-position stream while preserving the 110/55 ms idle and
   active sampling cadence.
 - Added short linear position interpolation to the standard vector pointer for
-  smoother motion without changing click handling or cursor restoration.
+  smoother motion without changing click handling or cursor restoration, and
+  matched its fill and outline directly to Omarchy accent/background colors.
+- Added optional shake-driven Grow mode: continued movement enlarges the
+  overlay in proportion to shake speed, then eases it back to its reveal size
+  before restoring the normal cursor.
 - Added an input-transparent, theme-aware solid mouse trail with smooth Bézier
   curves, `off`, `reveal`, and `always` modes, plus a cheddar-gold Easter egg
   treatment and a compact three-state panel control.
+- Added an opt-in native-cursor tint prototype that preserves cursor shapes and
+  hotspots, builds from Omarchy accent/background colors in the runtime
+  directory, follows live Omarchy theme changes while active, restores the
+  previous theme, leaves persistent configuration untouched, and shares one
+  panel toggle with the enlarged cursor's Omarchy palette.
+- Added a repository `VERSION` source of truth and a guarded release controller
+  that keeps the manifest, QML service, and dated changelog release synchronized.
 
 ## [0.1.0] - 2026-08-22
 

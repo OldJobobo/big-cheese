@@ -23,11 +23,20 @@ Panel {
   readonly property string mouseTrailDetail: mouseTrail === "off"
     ? "No tail"
     : mouseTrail === "always" ? "Follows every move" : "Only when enlarged"
+  readonly property bool growEnabled: available
+    && cheeseService.growEnabled === true
+  readonly property bool nativeThemeCursorActive: available
+    && cheeseService.nativeThemeCursorActive === true
+  readonly property bool nativeThemeCursorBusy: available
+    && cheeseService.nativeThemeCursorBusy === true
+  readonly property string nativeThemeCursorDetail: nativeThemeCursorBusy
+    ? "Updating cursor…"
+    : nativeThemeCursorActive ? "Normal + enlarged" : "Uses cursor theme"
   readonly property color foreground: bar ? bar.barForeground : Color.foreground
   readonly property color accent: bar ? bar.urgent : Color.accent
   readonly property color dim: Qt.darker(foreground, 1.45)
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
-  readonly property string version: available ? String(cheeseService.pluginVersion) : "0.1.0"
+  readonly property string version: available ? String(cheeseService.pluginVersion) : "0.1.1"
 
   function switchPanel(direction) {
     if (bar && typeof bar.switchPanelFrom === "function")
@@ -37,7 +46,7 @@ Panel {
 
   function choose(index) {
     cursorActive = true
-    selectedIndex = Math.max(0, Math.min(2, index))
+    selectedIndex = Math.max(0, Math.min(4, index))
   }
 
   function moveCursor(dx, dy) {
@@ -45,7 +54,7 @@ Panel {
       choose(0)
       return
     }
-    if (selectedIndex === 1 && dx !== 0) {
+    if (selectedIndex === 2 && dx !== 0) {
       cycleTrail(dx)
       return
     }
@@ -55,12 +64,18 @@ Panel {
   function activateCursor() {
     if (!cursorActive) return
     if (selectedIndex === 0) toggleDetection()
-    else if (selectedIndex === 1) cycleTrail(1)
+    else if (selectedIndex === 1) toggleGrow()
+    else if (selectedIndex === 2) cycleTrail(1)
+    else if (selectedIndex === 3) toggleNativeThemeCursor()
     else openDonation()
   }
 
   function toggleDetection() {
     if (available) cheeseService.toggleEnabled()
+  }
+
+  function toggleGrow() {
+    if (available) cheeseService.toggleGrowEnabled()
   }
 
   function setTrailMode(mode) {
@@ -74,6 +89,10 @@ Panel {
     setTrailMode(modes[(index + step + modes.length) % modes.length])
   }
 
+  function toggleNativeThemeCursor() {
+    if (available) cheeseService.toggleNativeThemeCursor()
+  }
+
   function openDonation() {
     close()
     Qt.openUrlExternally("https://ko-fi.com/oldjobobo")
@@ -82,6 +101,7 @@ Panel {
   onOpenedChanged: if (opened) {
     cursorActive = false
     selectedIndex = 0
+    if (available) cheeseService.probeNativeThemeCursor()
     Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
 
@@ -104,14 +124,16 @@ Panel {
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onTextKey: function(text) {
         if (text === "e" || text === "E") root.toggleDetection()
+        else if (text === "g" || text === "G") root.toggleGrow()
         else if (text === "t" || text === "T") root.cycleTrail(1)
+        else if (text === "c" || text === "C") root.toggleNativeThemeCursor()
         else if (text === "d" || text === "D") root.openDonation()
       }
 
       Column {
         id: content
         width: parent.width
-        spacing: Style.space(14)
+        spacing: Style.space(10)
 
         PanelHero {
           width: parent.width
@@ -170,9 +192,26 @@ Panel {
         }
 
         ControlRow {
+          title: "Grow"
+          detail: root.growEnabled
+            ? "Shake longer, grow larger"
+            : "Fixed enlarged size"
+          rowIndex: 1
+          onActivated: root.toggleGrow()
+
+          ToggleSwitch {
+            checked: root.growEnabled
+            interactive: false
+            cursorRing: false
+            foreground: root.foreground
+            accent: root.accent
+          }
+        }
+
+        ControlRow {
           title: "Mouse trail"
           detail: root.mouseTrailDetail
-          rowIndex: 1
+          rowIndex: 2
           onActivated: root.cycleTrail(1)
 
           TrailModeSelector {
@@ -185,9 +224,25 @@ Panel {
         }
 
         ControlRow {
+          title: "Theme cursor colors"
+          detail: root.nativeThemeCursorDetail
+          rowIndex: 3
+          enabled: root.available && !root.nativeThemeCursorBusy
+          onActivated: root.toggleNativeThemeCursor()
+
+          ToggleSwitch {
+            checked: root.nativeThemeCursorActive
+            interactive: false
+            cursorRing: false
+            foreground: root.foreground
+            accent: root.accent
+          }
+        }
+
+        ControlRow {
           title: "Give some Cheddar"
           detail: "ko-fi.com/oldjobobo"
-          rowIndex: 2
+          rowIndex: 4
           onActivated: root.openDonation()
 
           Text {

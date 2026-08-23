@@ -460,7 +460,7 @@ recover_command() {
 
 mask_command() {
   (( $# == 1 )) || fail "mask requires duration"
-  local duration_ms=$1 current deadline sleep_seconds marker_result alive=false
+  local duration_ms=$1 current deadline marker_result alive=false stop_requested=false
   validate_integer "duration" "$duration_ms" 1 60000
 
   exec 9>"$LOCK_FILE"
@@ -488,6 +488,7 @@ mask_command() {
   trap 'exit 130' INT
   trap 'exit 143' TERM
   trap 'exit 129' HUP
+  trap 'stop_requested=true' USR1
 
   set_cursor_invisible true
   # Active clients may retain their last cursor surface until the compositor
@@ -498,8 +499,11 @@ mask_command() {
   # Leave two compositor frames between the native refresh and overlay reveal.
   sleep 0.04
   printf 'masked\n'
-  printf -v sleep_seconds '%d.%03d' "$((10#$duration_ms / 1000))" "$((10#$duration_ms % 1000))"
-  sleep "$sleep_seconds"
+  while [[ "$stop_requested" == false ]]; do
+    current=$(now_ms)
+    (( 10#$current < 10#$deadline - 300 )) || break
+    sleep 0.05
+  done
   # Tell QML to unmap the overlay, then allow two compositor frames before
   # revealing the native cursor. This mirrors the guarded startup transition.
   printf 'restoring\n'
@@ -511,6 +515,20 @@ mask_command() {
     restore_mask_marker
     mask_cleanup_needed=0
   fi
+}
+
+unmask_command() {
+  (( $# == 0 )) || fail "unmask takes no arguments"
+  local marker_result
+  if read_mask_marker; then
+    :
+  else
+    marker_result=$?
+    (( marker_result == 1 )) && printf '{"state":"idle"}\n' && return 0
+    fail "cursor mask marker is invalid"
+  fi
+  kill -USR1 "$mask_pid" 2>/dev/null || fail "cursor mask owner is not running"
+  printf '{"state":"stopping"}\n'
 }
 
 pulse_command() {
@@ -566,13 +584,14 @@ pulse_command() {
 }
 
 main() {
-  (( $# >= 1 )) || fail "expected mask, pulse, recover, or status"
+  (( $# >= 1 )) || fail "expected mask, unmask, pulse, recover, or status"
   local command=$1
   shift
   ensure_runtime
 
   case "$command" in
     mask) mask_command "$@" ;;
+    unmask) unmask_command "$@" ;;
     pulse) pulse_command "$@" ;;
     recover)
       (( $# == 0 )) || fail "recover takes no arguments"

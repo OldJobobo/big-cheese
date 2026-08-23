@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "jobo.big-cheese",
   "name": "Big Cheese",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "J. S. Brown",
   "license": "MIT",
-  "description": "Shake to reveal one crisp, enlarged pointer—with a giant cheese Easter egg.",
+  "description": "Shake to reveal—and grow—one crisp enlarged pointer with a smooth trail.",
   "kinds": [
     "service",
     "bar-widget"
@@ -16,7 +16,7 @@
   },
   "barWidget": {
     "displayName": "Big Cheese",
-    "description": "Find the pointer, control shake detection, and unlock a giant cheese Easter egg.",
+    "description": "Find the pointer, choose cursor effects, and unlock a giant cheese Easter egg.",
     "category": "System",
     "aliases": [
       "cursor",

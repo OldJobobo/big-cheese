@@ -13,6 +13,7 @@ LOCATOR = (ROOT / "services" / "CursorLocator.qml").read_text(encoding="utf-8")
 BAR_WIDGET = (ROOT / "BarWidget.qml").read_text(encoding="utf-8")
 PANEL = (ROOT / "Panel.qml").read_text(encoding="utf-8")
 HELPER = (ROOT / "scripts" / "cursor-pulse.sh").read_text(encoding="utf-8")
+VERSION = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
 
 
 def test_manifest_declares_service_and_bar_widget():
@@ -20,9 +21,9 @@ def test_manifest_declares_service_and_bar_widget():
 
     assert manifest["schemaVersion"] == 1
     assert manifest["id"] == "jobo.big-cheese"
-    assert manifest["version"] == "0.1.0"
+    assert manifest["version"] == VERSION
     assert manifest["license"] == "MIT"
-    assert 'readonly property string pluginVersion: "0.1.0"' in SERVICE
+    assert f'readonly property string pluginVersion: "{VERSION}"' in SERVICE
     assert (ROOT / "LICENSE").is_file()
     assert manifest["kinds"] == ["service", "bar-widget"]
     assert manifest["entryPoints"] == {
@@ -35,6 +36,7 @@ def test_manifest_declares_service_and_bar_widget():
 
 def test_complete_runtime_files_exist():
     for relative in (
+        "VERSION",
         "Service.qml",
         "BarWidget.qml",
         "Panel.qml",
@@ -51,6 +53,8 @@ def test_complete_runtime_files_exist():
         "scripts/cursor-palette.py",
         "scripts/cursor-position.py",
         "scripts/cheese-config.py",
+        "scripts/theme-cursor.py",
+        "scripts/release.py",
     ):
         assert (ROOT / relative).is_file()
 
@@ -65,6 +69,11 @@ def test_service_loads_the_short_toml_config_into_runtime_components():
     assert "maximumPeakSize: root.configuredPointerSize" in SERVICE
     assert "durationMs: root.configuredDurationMs" in SERVICE
     assert "trailMode: root.mouseTrail" in SERVICE
+    assert 'Qt.resolvedUrl("scripts/theme-cursor.py")' in SERVICE
+    assert "onOmarchyCursorFillChanged: themeCursorRefresh.restart()" in SERVICE
+    assert "onOmarchyCursorOutlineChanged: themeCursorRefresh.restart()" in SERVICE
+    assert 'themeCursorStatusProcess.command = [themeCursorHelperPath, "status"]' in SERVICE
+    assert '"apply",\n      omarchyCursorFill,\n      omarchyCursorOutline' in SERVICE
 
 
 def test_overlay_textures_are_right_sized():
@@ -155,7 +164,8 @@ def test_visual_overlay_is_default_and_invokes_only_mask_helper():
     assert visual_branch < native_branch
     visual_code = PULSE[visual_branch:native_branch]
     assert 'maskProcess.command = [helperPath, "mask", String(activeDurationMs)]' in visual_code
-    assert "activeDurationMs = effectiveDurationMs()" in visual_code
+    assert "activeDurationMs = activeGrowEnabled" in visual_code
+    assert "? growthMaximumDurationMs : effectiveDurationMs()" in visual_code
     assert "durationMultiplier: root.easterEggEnabled ? 2 : 1" in SERVICE
     assert "maskProcess.running = true" in visual_code
     assert "active = true" in visual_code
@@ -217,8 +227,11 @@ def test_cursor_locator_owns_input_transparent_per_output_overlay():
     assert "cheeseSize * 0.41" in LOCATOR
     assert "cheeseSize * 0.05" in LOCATOR
     assert "&& root.easterEggEnabled" in LOCATOR
+    assert "readonly property color pointerFill: useOmarchyPalette" in LOCATOR
+    assert "? Color.accent : cursorThemeFill" in LOCATOR
+    assert "? Color.background : cursorThemeStroke" in LOCATOR
+    assert '"omarchy" : cursorPaletteTheme' in LOCATOR
     assert "cursor-palette.py" in LOCATOR
-    assert "decodeURIComponent(value.substring(7))" in LOCATOR
     assert "strokeColor: root.pointerStroke" in LOCATOR
     assert "fillColor: root.pointerFill" in LOCATOR
     assert "displayedPointerSize" not in LOCATOR
@@ -279,6 +292,25 @@ def test_left_click_opens_a_minimal_native_panel():
     assert "cheeseService.setMouseTrail(mode)" in PANEL
     assert "function setMouseTrail(value)" in SERVICE
     assert 'mode !== "off" && mode !== "reveal" && mode !== "always"' in SERVICE
+    assert 'title: "Grow"' in PANEL
+    assert 'detail: root.growEnabled' in PANEL
+    assert "cheeseService.toggleGrowEnabled()" in PANEL
+    assert 'title: "Theme cursor colors"' in PANEL
+    assert 'detail: root.nativeThemeCursorDetail' in PANEL
+    assert "cheeseService.toggleNativeThemeCursor()" in PANEL
+    assert "function setGrowEnabled(value)" in SERVICE
+    assert "function toggleGrowEnabled()" in SERVICE
+    assert "growEnabled: root.growEnabled" in SERVICE
+    assert "function growEnable(): string" in SERVICE
+    assert "function growDisable(): string" in SERVICE
+    assert "cursorPulse.addGrowthMotion(speed, sampledAt" in SERVICE
+    assert "function setNativeThemeCursor(value)" in SERVICE
+    assert 'themeCursorRestoreProcess.command = [themeCursorHelperPath, "restore"]' in SERVICE
+    assert "nativeThemeCursorBusy: themeCursorStatusProcess.running" in SERVICE
+    assert "useOmarchyPalette: root.nativeThemeCursorActive" in SERVICE
+    assert "cursorTheme: root.nativeThemeCursorBaseline" in SERVICE
+    assert "function themeCursorEnable(): string" in SERVICE
+    assert "function themeCursorDisable(): string" in SERVICE
     assert 'title: "Find my cursor"' not in PANEL
     assert 'title: "Give some Cheddar"' in PANEL
     assert 'title: "Support Big Cheese"' not in PANEL
@@ -328,3 +360,6 @@ def test_helpers_are_executable():
     assert (ROOT / "scripts" / "cursor-pulse.sh").stat().st_mode & 0o111
     assert (ROOT / "scripts" / "cursor-palette.py").stat().st_mode & 0o111
     assert (ROOT / "scripts" / "cheese-config.py").stat().st_mode & 0o111
+    assert (ROOT / "scripts" / "cursor-position.py").stat().st_mode & 0o111
+    assert (ROOT / "scripts" / "theme-cursor.py").stat().st_mode & 0o111
+    assert (ROOT / "scripts" / "release.py").stat().st_mode & 0o111

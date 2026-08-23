@@ -24,7 +24,7 @@ The cheese lands in the right side of your bar.
 ## Use it
 
 - **Shake the mouse:** find your cursor.
-- **Left-click the cheese:** open the tiny control panel and choose **Off**, **Reveal**, or **Always** for the trail.
+- **Left-click the cheese:** open the tiny control panel for Grow, trail, and cursor colors.
 - **Double-click the cheese:** unlock full color and a cheese pointer twice the standard size and duration until the shell restarts.
 - **Right-click the cheese:** turn shake detection on or off.
 
@@ -43,14 +43,37 @@ mouse_trail = "reveal" # off | reveal | always
 ```
 
 `gentle` notices a smaller shake. `workout` makes you earn your cheese. The
-panel changes the trail for the current shell session; `cheese.toml` remains
-the restart default. Restart the Omarchy shell after editing the file.
+panel changes Grow, trail, and cursor-color behavior for the current shell
+session; `cheese.toml` remains the restart default. Restart the Omarchy shell
+after editing the file.
+
+## Try theme-colored native cursors
+
+The optional prototype keeps your normal cursor shapes and hotspots while
+mapping them to the current Omarchy accent and background. It generates the
+cursor data under `$XDG_RUNTIME_DIR`, adds one disposable discovery symlink,
+and does not edit persistent cursor or desktop configuration.
+
+Use **Theme cursor colors** in the panel to apply the Omarchy palette to both
+normal and enlarged cursors, or control the native-cursor prototype directly:
+
+```bash
+./scripts/theme-cursor.py apply-omarchy
+
+# Return to the cursor theme and size that were active before the prototype
+./scripts/theme-cursor.py restore
+```
+
+While active, Big Cheese rebuilds the temporary cursor when Omarchy colors
+change. Some applications cache cursor surfaces until they are reopened. The
+setting remains opt-in and restores the theme that was active before it.
 
 ## The good stuff
 
 - One sharp pointer, anchored to the real hotspot.
 - Clicking still works exactly where it should.
-- The large pointer and optional glowing trail borrow colors from your cursor theme.
+- Optional **Grow** mode turns shake speed into growth speed, then eases fluidly back down.
+- Cursor colors can follow Omarchy or return to the active cursor-theme palette.
 - Odd monitor layouts and negative screen coordinates are welcome.
 - Tiny jitters, normal swipes, and pointer warps do not set it off.
 
@@ -70,14 +93,16 @@ omarchy-shell jobo-big-cheese enable
 
 ## A few honest notes
 
-Big Cheese is built for Omarchy on Hyprland. It matches the active Xcursor
-version of your default arrow; Hyprland does not reveal the exact cursor shape
-chosen by each app. Hyprcursor-only themes fall back to a dark pointer with a
-light outline.
+Big Cheese is built for Omarchy on Hyprland. Its enlarged vector pointer uses
+the active Omarchy accent and background directly. The optional native-cursor
+prototype preserves the available Xcursor shapes and hotspots; themes without
+readable Xcursor assets fall back to Adwaita shapes before recoloring.
 
 Like every Omarchy Shell plugin, it runs unsandboxed. Read the code before
 installing it if the repository is not yours. Big Cheese does not read input
-devices, use the network, or save your cursor coordinates.
+devices, use the network, or save your cursor coordinates. The optional native
+cursor prototype reads the active cursor/theme assets and writes only its
+runtime theme, discovery symlink, and crash-recovery state.
 
 ## Update or remove
 

@@ -151,6 +151,31 @@ def test_mask_hides_native_cursor_then_restores_original_visibility(helper_env):
     assert not (runtime_root(runtime) / "mask.state").exists()
 
 
+def test_unmask_ends_a_long_adaptive_mask_early(helper_env):
+    env, runtime, log = helper_env
+    process = subprocess.Popen(
+        [str(HELPER), "mask", "5000"],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    wait_until(
+        lambda: mask_marker_path(runtime).exists()
+        and ["eval", "hl.config { cursor = { invisible = true } }"]
+        in invocations(log)
+    )
+
+    stopped = run_helper(env, "unmask")
+    assert json.loads(stopped.stdout) == {"state": "stopping"}
+    assert process.wait(timeout=2) == 0
+    assert "restoring" in process.stdout.read()
+    assert not mask_marker_path(runtime).exists()
+    assert [call for call in invocations(log) if call[0] == "eval"][-1] == [
+        "eval", "hl.config { cursor = { invisible = false } }"
+    ]
+
+
 def test_deleted_mask_marker_still_restores_process_baseline(helper_env):
     env, runtime, log = helper_env
     process = subprocess.Popen(

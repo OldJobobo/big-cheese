@@ -24,6 +24,7 @@ QtObject {
   readonly property double lastTriggerAt: Number(modelState.lastTriggerAt) || 0
 
   signal shaken(real score)
+  signal motion(real speed, double sampledAt)
 
   function config() {
     return {
@@ -59,6 +60,8 @@ QtObject {
       config())
     modelState = result.state
     if (result.triggered) shaken(result.score)
+    if (Number(result.motionSpeed) > 0)
+      motion(Number(result.motionSpeed), sampledAt)
   }
 
   function status() {

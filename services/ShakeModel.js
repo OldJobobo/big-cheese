@@ -100,13 +100,25 @@ function addSample(previousState, sample, rawConfig) {
   var at = finiteNumber(sample && sample.at)
 
   if (x === null || y === null || at === null)
-    return { state: state, triggered: false, score: 0, accepted: false }
+    return { state: state, triggered: false, score: 0, accepted: false, motionSpeed: 0 }
 
   var samples = Array.isArray(state.samples) ? state.samples.slice() : []
   var lastTriggerAt = Number(state.lastTriggerAt) || 0
+  var motionSpeed = 0
   if (samples.length > 0) {
-    var gap = at - samples[samples.length - 1].at
-    if (gap <= 0 || gap > config.maxSampleGapMs) samples = []
+    var previous = samples[samples.length - 1]
+    var gap = at - previous.at
+    if (gap <= 0 || gap > config.maxSampleGapMs) {
+      samples = []
+    } else {
+      var motionX = Math.abs(x - previous.x)
+      var motionY = Math.abs(y - previous.y)
+      var motionDistance = Math.sqrt(motionX * motionX + motionY * motionY)
+      if (motionDistance >= config.minimumStep
+          && motionX >= motionY * config.horizontalDominance)
+        motionSpeed = Math.min(motionX, config.maximumSegmentContribution)
+          / gap * 1000
+    }
   }
 
   samples.push({ x: x, y: y, at: at })
@@ -124,9 +136,21 @@ function addSample(previousState, sample, rawConfig) {
     && cooldownPass
 
   if (!trigger)
-    return { state: next, triggered: false, score: 0, accepted: true }
+    return {
+      state: next,
+      triggered: false,
+      score: 0,
+      accepted: true,
+      motionSpeed: motionSpeed
+    }
 
   var score = scoreFor(next, config)
   var cleared = initialState(at)
-  return { state: cleared, triggered: true, score: score, accepted: true }
+  return {
+    state: cleared,
+    triggered: true,
+    score: score,
+    accepted: true,
+    motionSpeed: motionSpeed
+  }
 }

@@ -14,14 +14,24 @@ Item {
   property bool enabled: true
   property bool easterEggEnabled: false
   property string trailMode: "reveal"
-  property color pointerFill: "#111318"
-  property color pointerStroke: "#f8fafc"
-  property bool paletteDetected: false
-  property string paletteTheme: ""
+  property bool useOmarchyPalette: false
+  property string cursorTheme: "default"
+  property color cursorThemeFill: "#111318"
+  property color cursorThemeStroke: "#f8fafc"
+  property bool cursorPaletteDetected: false
+  property string cursorPaletteTheme: "default"
   property string paletteRequestedTheme: ""
-
+  readonly property color pointerFill: useOmarchyPalette
+    ? Color.accent : cursorThemeFill
+  readonly property color pointerStroke: useOmarchyPalette
+    ? Color.background : cursorThemeStroke
+  readonly property bool paletteDetected: useOmarchyPalette
+    ? true : cursorPaletteDetected
+  readonly property string paletteTheme: useOmarchyPalette
+    ? "omarchy" : cursorPaletteTheme
   readonly property string paletteHelperPath: helperPathFromUrl(
     Qt.resolvedUrl("../scripts/cursor-palette.py"))
+
   readonly property bool active: enabled && cursorPulse
     && cursorPulse.active && cursorPulse.overlayReady
   readonly property real pointerSize: cursorPulse
@@ -47,47 +57,40 @@ Item {
   }
 
   function refreshPalette() {
-    if (!cursorPulse || paletteProcess.running || paletteHelperPath === "") return
-    var theme = String(cursorPulse.baselineTheme || "default")
-    paletteRequestedTheme = theme
-    paletteProcess.command = [paletteHelperPath, theme, String(Math.round(pointerSize))]
+    if (paletteProcess.running || paletteHelperPath === "") return false
+    paletteRequestedTheme = String(cursorTheme || "default")
+    paletteProcess.command = [
+      paletteHelperPath,
+      paletteRequestedTheme,
+      String(Math.round(pointerSize))
+    ]
     paletteProcess.running = true
+    return true
   }
 
+  onCursorThemeChanged: refreshPalette()
   Component.onCompleted: refreshPalette()
-
-  Connections {
-    target: root.cursorPulse
-    function onBaselineThemeChanged() { root.refreshPalette() }
-  }
 
   Process {
     id: paletteProcess
     stdout: StdioCollector { id: paletteOutput; waitForEnd: true }
     onExited: function(exitCode) {
-      if (exitCode !== 0) {
-        if (root.cursorPulse
-            && String(root.cursorPulse.baselineTheme || "default")
-              !== root.paletteRequestedTheme)
-          Qt.callLater(root.refreshPalette)
-        return
-      }
+      if (exitCode !== 0) return
       try {
         var payload = JSON.parse(String(paletteOutput.text || "{}"))
         var fill = String(payload.fill || "")
         var stroke = String(payload.stroke || "")
         if (!/^#[0-9a-fA-F]{6}$/.test(fill)
             || !/^#[0-9a-fA-F]{6}$/.test(stroke)) return
-        root.pointerFill = fill
-        root.pointerStroke = stroke
-        root.paletteDetected = payload.detected === true
-        root.paletteTheme = String(payload.theme || root.paletteTheme)
+        root.cursorThemeFill = fill
+        root.cursorThemeStroke = stroke
+        root.cursorPaletteDetected = payload.detected === true
+        root.cursorPaletteTheme = String(payload.theme || "default")
       } catch (error) {
-        root.paletteDetected = false
+        root.cursorPaletteDetected = false
       }
-      if (root.cursorPulse
-          && String(root.cursorPulse.baselineTheme || "default")
-            !== root.paletteRequestedTheme)
+      if (String(root.cursorTheme || "default")
+          !== root.paletteRequestedTheme)
         Qt.callLater(root.refreshPalette)
     }
   }

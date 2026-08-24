@@ -46,6 +46,9 @@ def test_cursor_tracker_under_quickshell_with_fake_hyprland_socket(tmp_path):
     runtime = tmp_path / "runtime"
     runtime.mkdir(mode=0o700)
     env = os.environ.copy()
+    # The harness is intentionally headless. Do not advertise the live Wayland
+    # session to Quickshell while forcing its offscreen Qt platform.
+    env.pop("WAYLAND_DISPLAY", None)
     env.update(
         BIG_CHEESE_CURSOR_SOCKET=str(socket_path),
         XDG_RUNTIME_DIR=str(runtime),
@@ -61,6 +64,7 @@ def test_cursor_tracker_under_quickshell_with_fake_hyprland_socket(tmp_path):
     )
     server.join(timeout=1)
     output = result.stdout + result.stderr
+    assert "WAYLAND_DISPLAY is present" not in output, output
     assert "TRACKER_TEST_PASS" in output, output
     assert "TRACKER_TEST_FAIL" not in output, output
     assert result.returncode == 0, output

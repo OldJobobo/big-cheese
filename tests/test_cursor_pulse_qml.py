@@ -39,6 +39,9 @@ esac
     runtime = tmp_path / "runtime"
     runtime.mkdir(mode=0o700)
     env = os.environ.copy()
+    # The harness is intentionally headless. Do not advertise the live Wayland
+    # session to Quickshell while forcing its offscreen Qt platform.
+    env.pop("WAYLAND_DISPLAY", None)
     env.update(
         QT_QPA_PLATFORM="offscreen",
         NO_COLOR="1",
@@ -54,6 +57,7 @@ esac
         timeout=10,
     )
     output = result.stdout + result.stderr
+    assert "WAYLAND_DISPLAY is present" not in output, output
     assert "PULSE_QML_TEST_PASS" in output, output
     assert "PULSE_QML_TEST_FAIL" not in output, output
     assert result.returncode == 0, output

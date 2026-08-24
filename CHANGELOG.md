@@ -4,6 +4,13 @@ All notable changes to Big Cheese are documented here.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-08-24
+
+- Added the active `cheese.toml` path to the panel as a compact link that opens
+  the file in a window with the user's configured Omarchy editor.
+- Added a minimal `grow` restart default and expanded the panel height so every
+  control remains reachable without crowding the interface.
+
 ## [0.1.1] - 2026-08-23
 
 - Replaced per-sample `hyprctl` launches with one persistent, read-only

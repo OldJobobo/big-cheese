@@ -11,7 +11,7 @@ Item {
   // Injected by the Omarchy Shell service loader.
   property var shell: null
 
-  readonly property string pluginVersion: "0.1.1"
+  readonly property string pluginVersion: "0.1.2"
   property bool enabled: true
   property bool easterEggEnabled: false
   property string shakeEffort: "normal"
@@ -80,6 +80,7 @@ Item {
         pointerSize: configuredPointerSize,
         durationMs: configuredDurationMs,
         mouseTrail: mouseTrail,
+        growEnabled: growEnabled,
         error: configError
       },
       detector: shakeDetector.status(),
@@ -114,6 +115,13 @@ Item {
     }
   }
 
+  function openConfig() {
+    if (configPath === "" || configEditorProcess.running) return false
+    configEditorProcess.command = ["omarchy-launch-config-editor", configPath]
+    configEditorProcess.running = true
+    return true
+  }
+
   function loadConfig() {
     if (configProcess.running) return false
     if (configPath === "" || configReaderPath === "") {
@@ -132,6 +140,7 @@ Item {
     configuredPointerSize = Number(payload.pointerSize) || 72
     configuredDurationMs = Number(payload.durationMs) || 2000
     mouseTrail = String(payload.mouseTrail || "reveal")
+    setGrowEnabled(payload.growEnabled === true)
     detectorConfig = payload.detector || detectorConfig
     configError = String(payload.error || "")
     configReady = true
@@ -328,6 +337,10 @@ Item {
         root.nativeThemeCursorError = "cursor theme restore returned invalid status"
       }
     }
+  }
+
+  Process {
+    id: configEditorProcess
   }
 
   Process {

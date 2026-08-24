@@ -68,6 +68,7 @@ def test_service_loads_the_short_toml_config_into_runtime_components():
     assert "minimumPeakSize: root.configuredPointerSize" in SERVICE
     assert "maximumPeakSize: root.configuredPointerSize" in SERVICE
     assert "durationMs: root.configuredDurationMs" in SERVICE
+    assert "setGrowEnabled(payload.growEnabled === true)" in SERVICE
     assert "trailMode: root.mouseTrail" in SERVICE
     assert 'Qt.resolvedUrl("scripts/theme-cursor.py")' in SERVICE
     assert "onOmarchyCursorFillChanged: themeCursorRefresh.restart()" in SERVICE
@@ -292,6 +293,7 @@ def test_left_click_opens_a_minimal_native_panel():
     assert "cheeseService.setMouseTrail(mode)" in PANEL
     assert "function setMouseTrail(value)" in SERVICE
     assert 'mode !== "off" && mode !== "reveal" && mode !== "always"' in SERVICE
+    assert 'contentHeight: panel.fittedContentHeight(content.implicitHeight, Style.space(520))' in PANEL
     assert 'title: "Grow"' in PANEL
     assert 'detail: root.growEnabled' in PANEL
     assert "cheeseService.toggleGrowEnabled()" in PANEL
@@ -317,6 +319,22 @@ def test_left_click_opens_a_minimal_native_panel():
     assert "cheeseService.toggleEnabled()" in PANEL
     assert "cheeseService.requestPulse(1)" not in PANEL
     assert 'Qt.openUrlExternally("https://ko-fi.com/oldjobobo")' in PANEL
+
+
+def test_panel_links_to_the_active_config_with_the_default_desktop_editor():
+    assert "function openConfig()" in SERVICE
+    assert (
+        'configEditorProcess.command = ["omarchy-launch-config-editor", configPath]'
+        in SERVICE
+    )
+    assert 'configEditorProcess.command = ["xdg-open", configPath]' not in SERVICE
+    assert "id: configEditorProcess" in SERVICE
+    assert "cheeseService.openConfig()" in PANEL
+    assert ': root.configDisplayPath' in PANEL
+    assert '"Edit config · "' not in PANEL
+    assert "elide: Text.ElideMiddle" in PANEL
+    assert "cursorShape: enabled ? Qt.PointingHandCursor" in PANEL
+    assert "onClicked: root.openConfig()" in PANEL
 
 
 def test_bar_widget_prioritizes_service_errors_over_preparing_state():

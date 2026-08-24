@@ -22,6 +22,7 @@ def test_shipped_config_uses_normal_defaults():
 
     assert payload == {
         "startEnabled": True,
+        "growEnabled": False,
         "shakeEffort": "normal",
         "pointerSize": 72,
         "durationMs": 2000,
@@ -40,6 +41,7 @@ def test_custom_config_selects_clear_user_facing_settings(tmp_path):
     config = tmp_path / "cheese.toml"
     config.write_text(
         "start_enabled = false\n"
+        "grow = true\n"
         'shake_effort = "gentle"\n'
         "pointer_size = 96\n"
         "big_for_seconds = 3.5\n"
@@ -50,6 +52,7 @@ def test_custom_config_selects_clear_user_facing_settings(tmp_path):
     payload = read_config(config)
 
     assert payload["startEnabled"] is False
+    assert payload["growEnabled"] is True
     assert payload["shakeEffort"] == "gentle"
     assert payload["pointerSize"] == 96
     assert payload["durationMs"] == 3500
@@ -62,6 +65,7 @@ def test_bad_values_fall_back_safely_and_explain_the_problem(tmp_path):
     config = tmp_path / "cheese.toml"
     config.write_text(
         "start_enabled = 1\n"
+        'grow = "huge"\n'
         'shake_effort = "gouda"\n'
         "pointer_size = 400\n"
         "big_for_seconds = 20\n"
@@ -73,10 +77,12 @@ def test_bad_values_fall_back_safely_and_explain_the_problem(tmp_path):
     payload = read_config(config)
 
     assert payload["startEnabled"] is True
+    assert payload["growEnabled"] is False
     assert payload["shakeEffort"] == "normal"
     assert payload["pointerSize"] == 72
     assert payload["durationMs"] == 2000
     assert payload["mouseTrail"] == "reveal"
     assert "unknown setting: mystery_rind" in payload["error"]
+    assert "grow must be true or false" in payload["error"]
     assert "mouse_trail must be off, reveal, or always" in payload["error"]
     assert "shake_effort must be gentle, normal, or workout" in payload["error"]

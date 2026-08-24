@@ -37,6 +37,14 @@ Panel {
   readonly property color dim: Qt.darker(foreground, 1.45)
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
   readonly property string version: available ? String(cheeseService.pluginVersion) : "0.1.1"
+  readonly property string configPath: available
+    ? String(cheeseService.configPath || "") : ""
+  readonly property string configDisplayPath: compactPath(configPath)
+
+  function compactPath(path) {
+    var homePath = String(path || "").match(/^\/home\/[^/]+(\/.*)$/)
+    return homePath ? "~" + homePath[1] : String(path || "")
+  }
 
   function switchPanel(direction) {
     if (bar && typeof bar.switchPanelFrom === "function")
@@ -46,7 +54,7 @@ Panel {
 
   function choose(index) {
     cursorActive = true
-    selectedIndex = Math.max(0, Math.min(4, index))
+    selectedIndex = Math.max(0, Math.min(5, index))
   }
 
   function moveCursor(dx, dy) {
@@ -67,7 +75,8 @@ Panel {
     else if (selectedIndex === 1) toggleGrow()
     else if (selectedIndex === 2) cycleTrail(1)
     else if (selectedIndex === 3) toggleNativeThemeCursor()
-    else openDonation()
+    else if (selectedIndex === 4) openDonation()
+    else openConfig()
   }
 
   function toggleDetection() {
@@ -98,6 +107,10 @@ Panel {
     Qt.openUrlExternally("https://ko-fi.com/oldjobobo")
   }
 
+  function openConfig() {
+    if (available && cheeseService.openConfig()) close()
+  }
+
   onOpenedChanged: if (opened) {
     cursorActive = false
     selectedIndex = 0
@@ -113,7 +126,7 @@ Panel {
     open: root.opened
     focusTarget: keyCatcher
     contentWidth: panel.fittedContentWidth(Style.space(340))
-    contentHeight: panel.fittedContentHeight(content.implicitHeight, Style.space(440))
+    contentHeight: panel.fittedContentHeight(content.implicitHeight, Style.space(520))
 
     PanelKeyCatcher {
       id: keyCatcher
@@ -128,6 +141,7 @@ Panel {
         else if (text === "t" || text === "T") root.cycleTrail(1)
         else if (text === "c" || text === "C") root.toggleNativeThemeCursor()
         else if (text === "d" || text === "D") root.openDonation()
+        else if (text === "o" || text === "O") root.openConfig()
       }
 
       Column {
@@ -167,6 +181,33 @@ Panel {
           font.bold: true
           wrapMode: Text.WordWrap
           horizontalAlignment: Text.AlignHCenter
+        }
+
+        Text {
+          id: configLink
+
+          width: parent.width
+          text: root.configDisplayPath === ""
+            ? "Config unavailable"
+            : root.configDisplayPath
+          color: root.configPath === "" ? root.dim : root.accent
+          opacity: root.configPath === "" ? 0.5 : 0.82
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          font.underline: configMouse.containsMouse
+            || (root.cursorActive && root.selectedIndex === 5)
+          elide: Text.ElideMiddle
+          horizontalAlignment: Text.AlignHCenter
+
+          MouseArea {
+            id: configMouse
+            anchors.fill: parent
+            enabled: root.configPath !== ""
+            hoverEnabled: true
+            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+            onEntered: root.choose(5)
+            onClicked: root.openConfig()
+          }
         }
 
         PanelSeparator {

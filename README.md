@@ -36,14 +36,16 @@ Open [`cheese.toml`](cheese.toml). It is the whole settings file:
 
 ```toml
 start_enabled = true
+grow = false
 shake_effort = "normal" # gentle | normal | workout
 pointer_size = 72       # standard pixels: 48–128; cheese mode is 2×
 big_for_seconds = 2.0   # standard seconds: 0.5–5.0; cheese mode is 2×
 mouse_trail = "reveal" # off | reveal | always
 ```
 
-`gentle` notices a smaller shake. `workout` makes you earn your cheese. The
-panel changes Grow, trail, and cursor-color behavior for the current shell
+`grow` lets continued shake movement enlarge the active pointer. `gentle`
+notices a smaller shake. `workout` makes you earn your cheese. The panel
+changes Grow, trail, and cursor-color behavior for the current shell
 session; `cheese.toml` remains the restart default. Restart the Omarchy shell
 after editing the file.
 

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "jobo.big-cheese",
   "name": "Big Cheese",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "J. S. Brown",
   "license": "MIT",
   "description": "Shake to reveal—and grow—one crisp enlarged pointer with a smooth trail.",

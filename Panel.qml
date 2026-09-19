@@ -18,6 +18,8 @@ Panel {
   readonly property var barIdentity: hostWidget || root
   readonly property bool available: cheeseService !== null
   readonly property bool serviceEnabled: available && cheeseService.enabled
+  readonly property bool shakeEnabled: available
+    && cheeseService.shakeEnabled === true
   readonly property string mouseTrail: available
     ? String(cheeseService.mouseTrail || "reveal") : "reveal"
   readonly property string mouseTrailDetail: mouseTrail === "off"
@@ -80,7 +82,7 @@ Panel {
   }
 
   function toggleDetection() {
-    if (available) cheeseService.toggleEnabled()
+    if (available) cheeseService.toggleShakeEnabled()
   }
 
   function toggleGrow() {
@@ -217,14 +219,16 @@ Panel {
 
         ControlRow {
           title: "Shake to locate"
-          detail: root.serviceEnabled
-            ? "Ready when the cursor goes missing"
-            : "Taking a little cheese break"
+          detail: !root.serviceEnabled
+            ? "Big Cheese is disabled from the bar"
+            : root.shakeEnabled
+              ? "Ready when the cursor goes missing"
+              : "Shake detection is off"
           rowIndex: 0
           onActivated: root.toggleDetection()
 
           ToggleSwitch {
-            checked: root.serviceEnabled
+            checked: root.shakeEnabled
             interactive: false
             cursorRing: false
             foreground: root.foreground

@@ -129,10 +129,17 @@ def test_disable_clears_detection_without_mutating_cursor_directly():
     assert "setcursor" not in SERVICE
 
 
-def test_disabling_mid_pulse_keeps_tracking_and_locator_alive_until_restore():
+def test_app_and_shake_toggles_have_separate_runtime_scopes():
+    assert "property bool shakeEnabled: true" in SERVICE
+    assert "setShakeEnabled(payload.shakeEnabled === true)" in SERVICE
+    assert "setEnabled(payload.startEnabled === true)" in SERVICE
+    assert "function setShakeEnabled(value)" in SERVICE
+    assert "function toggleShakeEnabled()" in SERVICE
+    assert "enabled: root.enabled && root.shakeEnabled" in SERVICE
     assert "active: root.enabled || cursorPulse.active" in SERVICE
     assert "enabled: root.enabled || cursorPulse.active" in SERVICE
     assert "if (!enabled) shakeDetector.reset()" in SERVICE
+    assert "if (!shakeEnabled) shakeDetector.reset()" in SERVICE
 
 
 def test_detector_is_a_thin_adapter_over_the_model():
@@ -316,7 +323,12 @@ def test_left_click_opens_a_minimal_native_panel():
     assert 'title: "Find my cursor"' not in PANEL
     assert 'title: "Give some Cheddar"' in PANEL
     assert 'title: "Support Big Cheese"' not in PANEL
-    assert "cheeseService.toggleEnabled()" in PANEL
+    assert "cheeseService.toggleEnabled()" not in PANEL
+    assert "cheeseService.toggleShakeEnabled()" in PANEL
+    assert "readonly property bool serviceEnabled" in PANEL
+    assert "readonly property bool shakeEnabled" in PANEL
+    assert '"Big Cheese is disabled from the bar"' in PANEL
+    assert '"Shake detection is off"' in PANEL
     assert "cheeseService.requestPulse(1)" not in PANEL
     assert 'Qt.openUrlExternally("https://ko-fi.com/oldjobobo")' in PANEL
 
@@ -341,6 +353,14 @@ def test_bar_widget_prioritizes_service_errors_over_preparing_state():
     error_check = 'if (cheeseService.lastError !== "")'
     preparing_check = 'if (!cheeseService.pulseReady)'
     assert BAR_WIDGET.index(error_check) < BAR_WIDGET.index(preparing_check)
+
+
+def test_bar_widget_right_click_toggles_the_whole_app():
+    assert "readonly property bool serviceEnabled" in BAR_WIDGET
+    assert "cheeseService.toggleEnabled()" in BAR_WIDGET
+    assert '"Big Cheese is disabled · Right-click to enable"' in BAR_WIDGET
+    assert "opacity: root.serviceEnabled ? 1 : 0.42" in BAR_WIDGET
+    assert "toggleShakeEnabled()" not in BAR_WIDGET
 
 
 def test_mask_waits_for_native_cursor_to_leave_the_frame_before_overlay():

@@ -11,6 +11,7 @@ from typing import Any
 
 DEFAULTS = {
     "start_enabled": True,
+    "shake_enabled": True,
     "grow": False,
     "shake_effort": "normal",
     "pointer_size": 72,
@@ -68,6 +69,12 @@ def read_config(path: Path) -> dict[str, Any]:
     else:
         errors.append("start_enabled must be true or false")
 
+    shake_enabled = loaded.get("shake_enabled", DEFAULTS["shake_enabled"])
+    if isinstance(shake_enabled, bool):
+        values["shake_enabled"] = shake_enabled
+    else:
+        errors.append("shake_enabled must be true or false")
+
     grow = loaded.get("grow", DEFAULTS["grow"])
     if isinstance(grow, bool):
         values["grow"] = grow
@@ -100,6 +107,7 @@ def read_config(path: Path) -> dict[str, Any]:
 
     return {
         "startEnabled": values["start_enabled"],
+        "shakeEnabled": values["shake_enabled"],
         "growEnabled": values["grow"],
         "shakeEffort": values["shake_effort"],
         "pointerSize": values["pointer_size"],

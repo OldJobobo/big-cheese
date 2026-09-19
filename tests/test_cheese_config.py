@@ -1,5 +1,7 @@
 import json
 import subprocess
+
+import pytest
 from pathlib import Path
 
 
@@ -22,6 +24,7 @@ def test_shipped_config_uses_normal_defaults():
 
     assert payload == {
         "startEnabled": True,
+        "shakeEnabled": True,
         "growEnabled": False,
         "shakeEffort": "normal",
         "pointerSize": 72,
@@ -41,6 +44,7 @@ def test_custom_config_selects_clear_user_facing_settings(tmp_path):
     config = tmp_path / "cheese.toml"
     config.write_text(
         "start_enabled = false\n"
+        "shake_enabled = false\n"
         "grow = true\n"
         'shake_effort = "gentle"\n'
         "pointer_size = 96\n"
@@ -52,6 +56,7 @@ def test_custom_config_selects_clear_user_facing_settings(tmp_path):
     payload = read_config(config)
 
     assert payload["startEnabled"] is False
+    assert payload["shakeEnabled"] is False
     assert payload["growEnabled"] is True
     assert payload["shakeEffort"] == "gentle"
     assert payload["pointerSize"] == 96
@@ -59,6 +64,38 @@ def test_custom_config_selects_clear_user_facing_settings(tmp_path):
     assert payload["mouseTrail"] == "always"
     assert payload["detector"]["minimumReversals"] == 2
     assert payload["error"] == ""
+
+
+@pytest.mark.parametrize("start_enabled", [True, False])
+@pytest.mark.parametrize("shake_enabled", [True, False])
+def test_shake_setting_is_independent_of_master_switch(tmp_path, start_enabled, shake_enabled):
+    config = tmp_path / "cheese.toml"
+    config.write_text(
+        f"start_enabled = {str(start_enabled).lower()}\n"
+        f"shake_enabled = {str(shake_enabled).lower()}\n",
+        encoding="utf-8",
+    )
+    payload = read_config(config)
+    assert payload["startEnabled"] is start_enabled
+    assert payload["shakeEnabled"] is shake_enabled
+    assert payload["error"] == ""
+
+
+def test_omitted_shake_setting_preserves_existing_behavior(tmp_path):
+    config = tmp_path / "cheese.toml"
+    config.write_text("start_enabled = true\n", encoding="utf-8")
+    payload = read_config(config)
+    assert payload["shakeEnabled"] is True
+    assert payload["error"] == ""
+
+
+@pytest.mark.parametrize("value", ['"false"', "0", "1", "[]", "{}"])
+def test_invalid_shake_setting_falls_back_with_error(tmp_path, value):
+    config = tmp_path / "cheese.toml"
+    config.write_text(f"shake_enabled = {value}\n", encoding="utf-8")
+    payload = read_config(config)
+    assert payload["shakeEnabled"] is True
+    assert payload["error"] == "shake_enabled must be true or false"
 
 
 def test_bad_values_fall_back_safely_and_explain_the_problem(tmp_path):

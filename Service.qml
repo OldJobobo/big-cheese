@@ -13,6 +13,7 @@ Item {
 
   readonly property string pluginVersion: "0.1.2"
   property bool enabled: true
+  property bool shakeEnabled: true
   property bool easterEggEnabled: false
   property string shakeEffort: "normal"
   property int configuredPointerSize: 72
@@ -60,6 +61,7 @@ Item {
     return {
       version: pluginVersion,
       enabled: enabled,
+      shakeEnabled: shakeEnabled,
       easterEggEnabled: easterEggEnabled,
       tracking: tracking,
       sampleCount: sampleCount,
@@ -140,6 +142,7 @@ Item {
     configuredPointerSize = Number(payload.pointerSize) || 72
     configuredDurationMs = Number(payload.durationMs) || 2000
     mouseTrail = String(payload.mouseTrail || "reveal")
+    setShakeEnabled(payload.shakeEnabled === true)
     setGrowEnabled(payload.growEnabled === true)
     detectorConfig = payload.detector || detectorConfig
     configError = String(payload.error || "")
@@ -169,6 +172,15 @@ Item {
 
   function toggleEnabled() {
     setEnabled(!enabled)
+  }
+
+  function setShakeEnabled(value) {
+    shakeEnabled = value === true
+    if (!shakeEnabled) shakeDetector.reset()
+  }
+
+  function toggleShakeEnabled() {
+    setShakeEnabled(!shakeEnabled)
   }
 
   function setGrowEnabled(value) {
@@ -371,7 +383,7 @@ Item {
 
   ShakeDetector {
     id: shakeDetector
-    enabled: root.enabled
+    enabled: root.enabled && root.shakeEnabled
     minimumStep: root.detectorConfig.minimumStep
     minimumReversals: root.detectorConfig.minimumReversals
     minimumHorizontalTravel: root.detectorConfig.minimumHorizontalTravel
@@ -419,6 +431,16 @@ Item {
 
     function disable(): string {
       root.setEnabled(false)
+      return "disabled"
+    }
+
+    function shakeEnable(): string {
+      root.setShakeEnabled(true)
+      return "enabled"
+    }
+
+    function shakeDisable(): string {
+      root.setShakeEnabled(false)
       return "disabled"
     }
 

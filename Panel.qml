@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 Panel {
@@ -34,8 +35,8 @@ Panel {
   readonly property string nativeThemeCursorDetail: nativeThemeCursorBusy
     ? "Updating cursor…"
     : nativeThemeCursorActive ? "Normal + enlarged" : "Uses cursor theme"
-  readonly property color foreground: bar ? bar.barForeground : Color.foreground
-  readonly property color accent: bar ? bar.urgent : Color.accent
+  readonly property color foreground: bar ? bar.barForeground : Commons.Color.foreground
+  readonly property color accent: bar ? bar.urgent : Commons.Color.accent
   readonly property color dim: Qt.darker(foreground, 1.45)
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
   readonly property string version: available ? String(cheeseService.pluginVersion) : "0.1.1"

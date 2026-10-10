@@ -4,6 +4,12 @@ All notable changes to Big Cheese are documented here.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-09
+
+- Qualified panel, pointer, trail, and native-cursor tint bindings as
+  `Commons.Color`, matching Omarchy's official fix for the Qt 6.12
+  `QtQuick.Color` name collision.
+
 ## [0.1.2] - 2026-08-24
 
 - Added the active `cheese.toml` path to the panel as a compact link that opens

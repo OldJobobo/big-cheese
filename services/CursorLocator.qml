@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import qs.Commons
+import qs.Commons as Commons
 import "CursorLocatorModel.js" as CursorLocatorModel
 
 Item {
@@ -22,9 +23,9 @@ Item {
   property string cursorPaletteTheme: "default"
   property string paletteRequestedTheme: ""
   readonly property color pointerFill: useOmarchyPalette
-    ? Color.accent : cursorThemeFill
+    ? Commons.Color.accent : cursorThemeFill
   readonly property color pointerStroke: useOmarchyPalette
-    ? Color.background : cursorThemeStroke
+    ? Commons.Color.background : cursorThemeStroke
   readonly property bool paletteDetected: useOmarchyPalette
     ? true : cursorPaletteDetected
   readonly property string paletteTheme: useOmarchyPalette
@@ -37,9 +38,9 @@ Item {
   readonly property real pointerSize: cursorPulse
     ? Math.max(48, Number(cursorPulse.activePeakSize) || 48) : 48
   readonly property color trailGlowColor: easterEggEnabled
-    ? "#f7b928" : Color.accent
+    ? "#f7b928" : Commons.Color.accent
   readonly property color trailCoreColor: easterEggEnabled
-    ? "#fff1a8" : Color.foreground
+    ? "#fff1a8" : Commons.Color.foreground
 
   width: 0
   height: 0

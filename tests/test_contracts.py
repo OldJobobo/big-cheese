@@ -77,6 +77,26 @@ def test_service_loads_the_short_toml_config_into_runtime_components():
     assert '"apply",\n      omarchyCursorFill,\n      omarchyCursorOutline' in SERVICE
 
 
+def test_shell_palette_uses_official_qualified_color_singleton():
+    # Qt 6.12 exports QtQuick.Color; Omarchy qualifies its palette as Commons.Color.
+    sources = [ROOT / name for name in ("Service.qml", "Panel.qml", "BarWidget.qml")]
+    sources += list((ROOT / "services").glob("*.qml"))
+    sources += list((ROOT / "services").glob("*.js"))
+    for source in sources:
+        text = source.read_text(encoding="utf-8")
+        assert not re.search(r"(?<![\w.])Color\s*\.", text), source
+        assert not re.search(r"\bShellColor\b", text), source
+        if "Commons.Color" in text:
+            assert "import qs.Commons as Commons" in text, source
+
+    assert "String(Commons.Color.accent)" in SERVICE
+    assert "String(Commons.Color.background)" in SERVICE
+    assert "bar ? bar.barForeground : Commons.Color.foreground" in PANEL
+    assert "bar ? bar.urgent : Commons.Color.accent" in PANEL
+    assert '? "#f7b928" : Commons.Color.accent' in LOCATOR
+    assert '? "#fff1a8" : Commons.Color.foreground' in LOCATOR
+
+
 def test_overlay_textures_are_right_sized():
     cheese = (ROOT / "assets" / "the-big-cheese.png").read_bytes()
     assert cheese[:8] == b"\x89PNG\r\n\x1a\n"
@@ -236,8 +256,8 @@ def test_cursor_locator_owns_input_transparent_per_output_overlay():
     assert "cheeseSize * 0.05" in LOCATOR
     assert "&& root.easterEggEnabled" in LOCATOR
     assert "readonly property color pointerFill: useOmarchyPalette" in LOCATOR
-    assert "? Color.accent : cursorThemeFill" in LOCATOR
-    assert "? Color.background : cursorThemeStroke" in LOCATOR
+    assert "? Commons.Color.accent : cursorThemeFill" in LOCATOR
+    assert "? Commons.Color.background : cursorThemeStroke" in LOCATOR
     assert '"omarchy" : cursorPaletteTheme' in LOCATOR
     assert "cursor-palette.py" in LOCATOR
     assert "strokeColor: root.pointerStroke" in LOCATOR

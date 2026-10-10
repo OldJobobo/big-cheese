@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Commons
+import qs.Commons as Commons
 import "services"
 import "services/CursorPulseModel.js" as CursorPulseModel
 
@@ -11,7 +12,7 @@ Item {
   // Injected by the Omarchy Shell service loader.
   property var shell: null
 
-  readonly property string pluginVersion: "0.1.2"
+  readonly property string pluginVersion: "0.1.3"
   property bool enabled: true
   property bool shakeEnabled: true
   property bool easterEggEnabled: false
@@ -37,8 +38,8 @@ Item {
   property bool nativeThemeCursorEnablePending: false
   readonly property bool nativeThemeCursorBusy: themeCursorStatusProcess.running
     || themeCursorApplyProcess.running || themeCursorRestoreProcess.running
-  readonly property string omarchyCursorFill: String(Color.accent)
-  readonly property string omarchyCursorOutline: String(Color.background)
+  readonly property string omarchyCursorFill: String(Commons.Color.accent)
+  readonly property string omarchyCursorOutline: String(Commons.Color.background)
   property double lastShakeAt: 0
   readonly property bool tracking: cursorTracker.active
   readonly property int sampleCount: cursorTracker.sampleCount

@@ -15,6 +15,9 @@ when you shake it. Just the cursor, now much harder to lose.
 
 ## Install
 
+Uses Omarchy's `qs.Commons` palette as `Commons.Color` to avoid the
+Qt 6.12 `QtQuick.Color` name collision.
+
 ```bash
 omarchy plugin add https://github.com/OldJobobo/big-cheese.git --enable --yes
 ```
